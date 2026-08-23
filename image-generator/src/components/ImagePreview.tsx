@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Download, ImageIcon, Loader2, RefreshCw } from 'lucide-react'
+import { selectedStyleLabels } from '../data/styles'
 import { createFilename, downloadImage } from '../lib/api'
 import type { GeneratedImage } from '../types'
 
@@ -12,6 +13,7 @@ interface ImagePreviewProps {
 
 export function ImagePreview({ image, isGenerating, error, onRegenerate }: ImagePreviewProps) {
   const [isDownloading, setIsDownloading] = useState(false)
+  const styleLabels = image ? selectedStyleLabels(image.options) : []
 
   const handleDownload = async () => {
     if (!image) return
@@ -90,9 +92,16 @@ export function ImagePreview({ image, isGenerating, error, onRegenerate }: Image
 
       {image && !isGenerating && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-gray-500 line-clamp-2 flex-1 min-w-0">
-            {image.prompt}
-          </p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-gray-400 line-clamp-2">
+              {image.prompt}
+            </p>
+            {styleLabels.length > 0 && (
+              <p className="mt-1 text-[11px] text-gray-500">
+                {styleLabels.join(' · ')}
+              </p>
+            )}
+          </div>
           <div className="flex gap-2 shrink-0">
             <button
               type="button"

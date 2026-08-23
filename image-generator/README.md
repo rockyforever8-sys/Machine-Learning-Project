@@ -5,6 +5,7 @@ Turn text prompts into AI-generated images in your browser.
 ## Features
 
 - **Text-to-image** — Describe what you want and generate instantly
+- **Style ideas** — Tap theme, technique, and genre buttons (Cinematic, Retro, Corporate, and more)
 - **Multiple models** — Flux, Turbo, Realism, and Anime styles
 - **Aspect ratios** — Square, landscape, portrait, and more
 - **History** — Recent generations saved locally in your browser
@@ -30,10 +31,11 @@ npm run preview
 
 ## Usage
 
-1. Enter a descriptive prompt (e.g. "A sunset over mountains, oil painting style")
-2. Choose a model and aspect ratio
-3. Click **Generate Image** or press `⌘/Ctrl + Enter`
-4. Download or regenerate as needed
+1. Enter a descriptive prompt (e.g. "A sunset over mountains")
+2. Choose a **theme**, **technique**, and **genre** — or tap **Surprise me**
+3. Choose a model and aspect ratio
+4. Click **Generate Image** or press `⌘/Ctrl + Enter`
+5. Download or regenerate as needed
 
 ## Tech Stack
 

@@ -1,4 +1,5 @@
 import { Clock, Trash2 } from 'lucide-react'
+import { selectedStyleLabels } from '../data/styles'
 import type { GeneratedImage } from '../types'
 
 interface HistoryPanelProps {
@@ -48,6 +49,11 @@ export function HistoryPanel({ history, currentId, onSelect, onClear }: HistoryP
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <p className="text-[10px] text-white line-clamp-2 text-left">{item.prompt}</p>
+              {selectedStyleLabels(item.options).length > 0 && (
+                <p className="text-[10px] text-violet-200 line-clamp-1 text-left mt-0.5">
+                  {selectedStyleLabels(item.options).join(' · ')}
+                </p>
+              )}
             </div>
           </button>
         ))}

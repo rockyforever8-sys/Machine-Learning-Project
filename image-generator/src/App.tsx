@@ -3,6 +3,7 @@ import { HistoryPanel } from './components/HistoryPanel'
 import { ImagePreview } from './components/ImagePreview'
 import { OptionsPanel } from './components/OptionsPanel'
 import { PromptInput } from './components/PromptInput'
+import { StylePicker } from './components/StylePicker'
 import { useImageGenerator } from './hooks/useImageGenerator'
 
 function App() {
@@ -42,6 +43,20 @@ function App() {
               onPromptChange={setPrompt}
               onGenerate={generate}
               isGenerating={isGenerating}
+            />
+            <StylePicker
+              selections={{
+                themeId: options.themeId,
+                techniqueId: options.techniqueId,
+                genreId: options.genreId,
+              }}
+              onChange={styles => setOptions(prev => ({
+                ...prev,
+                themeId: styles.themeId,
+                techniqueId: styles.techniqueId,
+                genreId: styles.genreId,
+              }))}
+              disabled={isGenerating}
             />
             <OptionsPanel
               model={options.model}

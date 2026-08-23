@@ -1,31 +1,35 @@
 # Machine Learning Project
 
-## Digital Twin Task Commander
+## AI Image Generator
 
-A mobile-friendly fleet management dashboard for robot task assignment.
+Turn text prompts into AI-generated images in your browser.
 
 **Live demo:** https://rockyforever8-sys.github.io/Machine-Learning-Project/
 
-### Enable GitHub Pages (one-time setup)
+### Features
 
-If you see a **404** page, enable Pages in your repo:
+- **Text-to-image** — Describe what you want and generate instantly
+- **Multiple models** — Flux, Turbo, Realism, and Anime styles
+- **Aspect ratios** — Square, landscape, portrait, and more
+- **History** — Recent generations saved locally in your browser
+- **Download** — Save images as PNG files
+- **No API key** — Works out of the box
 
-1. Open **Settings → Pages**:  
-   https://github.com/rockyforever8-sys/Machine-Learning-Project/settings/pages
+### Local Development
 
-2. Under **Build and deployment → Source**, choose **one** of these:
+```bash
+cd image-generator
+npm install
+npm run dev -- --host
+```
 
-   **Option A (easiest):** Deploy from a branch  
-   - Branch: `main`  
-   - Folder: `/docs`  
-   - Click **Save**
+Open http://localhost:5173 in your browser.
 
-   **Option B:** Deploy from a branch  
-   - Branch: `gh-pages`  
-   - Folder: `/ (root)`  
-   - Click **Save**
+---
 
-3. Wait 1–2 minutes, then refresh the live URL above.
+## Digital Twin Task Commander
+
+A mobile-friendly fleet management dashboard for robot task assignment.
 
 ### Features
 

@@ -6,11 +6,15 @@ export interface ImageOptions {
   model: ImageModel
   aspectRatio: AspectRatio
   seed?: number
+  themeId?: string
+  techniqueId?: string
+  genreId?: string
 }
 
 export interface GeneratedImage {
   id: string
   prompt: string
+  composedPrompt?: string
   url: string
   options: ImageOptions
   createdAt: number

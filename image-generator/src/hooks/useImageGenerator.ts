@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { composePrompt } from '../data/styles'
 import { buildImageUrl, preloadImage } from '../lib/api'
 import type { GeneratedImage, ImageOptions } from '../types'
 
@@ -47,11 +48,13 @@ export function useImageGenerator() {
 
     const seed = Math.floor(Math.random() * 1_000_000)
     const generationOptions = { ...options, seed }
+    const composedPrompt = composePrompt(trimmed, generationOptions)
     const url = buildImageUrl(trimmed, generationOptions)
 
     const image: GeneratedImage = {
       id: crypto.randomUUID(),
       prompt: trimmed,
+      composedPrompt,
       url,
       options: generationOptions,
       createdAt: Date.now(),

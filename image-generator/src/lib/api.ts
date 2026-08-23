@@ -1,9 +1,11 @@
+import { composePrompt } from '../data/styles'
 import type { AspectRatio, ImageModel, ImageOptions } from '../types'
 import { ASPECT_RATIO_SIZES } from '../types'
 
 export function buildImageUrl(prompt: string, options: ImageOptions): string {
   const { width, height } = ASPECT_RATIO_SIZES[options.aspectRatio]
   const seed = options.seed ?? Math.floor(Math.random() * 1_000_000)
+  const composed = composePrompt(prompt, options)
 
   const params = new URLSearchParams({
     width: String(width),
@@ -14,7 +16,7 @@ export function buildImageUrl(prompt: string, options: ImageOptions): string {
     enhance: 'true',
   })
 
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params}`
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(composed)}?${params}`
 }
 
 export function preloadImage(url: string): Promise<void> {

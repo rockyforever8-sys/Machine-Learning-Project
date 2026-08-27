@@ -1,4 +1,12 @@
-export type ImageModel = 'flux' | 'turbo' | 'flux-realism' | 'flux-anime'
+export type ImageProvider = 'higgsfield' | 'pollinations'
+
+export type ImageModel =
+  | 'soul-standard'
+  | 'soul-turbo'
+  | 'flux'
+  | 'turbo'
+  | 'flux-realism'
+  | 'flux-anime'
 
 export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4'
 
@@ -16,15 +24,20 @@ export interface GeneratedImage {
   prompt: string
   composedPrompt?: string
   url: string
+  provider: ImageProvider
   options: ImageOptions
   createdAt: number
 }
 
+export const HIGGSFIELD_MODELS: ImageModel[] = ['soul-standard', 'soul-turbo']
+
 export const MODEL_LABELS: Record<ImageModel, string> = {
-  flux: 'Flux (balanced)',
-  turbo: 'Turbo (fast)',
-  'flux-realism': 'Flux Realism',
-  'flux-anime': 'Flux Anime',
+  'soul-standard': 'Higgsfield Soul (high quality)',
+  'soul-turbo': 'Higgsfield Soul Turbo',
+  flux: 'Flux — fast fallback',
+  turbo: 'Turbo — fast fallback',
+  'flux-realism': 'Flux Realism — fast fallback',
+  'flux-anime': 'Flux Anime — fast fallback',
 }
 
 export const ASPECT_RATIO_SIZES: Record<AspectRatio, { width: number; height: number }> = {
@@ -42,3 +55,7 @@ export const EXAMPLE_PROMPTS = [
   'Macro photograph of a dewdrop on a vibrant flower petal',
   'Abstract geometric art with bold colors and golden accents',
 ]
+
+export function isHiggsfieldModel(model: ImageModel): boolean {
+  return HIGGSFIELD_MODELS.includes(model)
+}

@@ -31,6 +31,7 @@ jobs:
         working-directory: image-generator
         env:
           GITHUB_PAGES: 'true'
+          VITE_GENERATE_API_URL: ${{ secrets.GENERATE_API_URL }}
         run: |
           npm ci
           npm run build

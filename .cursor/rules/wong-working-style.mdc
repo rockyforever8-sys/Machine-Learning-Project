@@ -1,0 +1,38 @@
+---
+description: Wong's default working preferences for agent collaboration — data scientist automating supply chain, manufacturing, and quality workflows
+alwaysApply: true
+globs: []
+---
+
+# Wong — Working Style (always on)
+
+## Who I am
+
+- Wong, data scientist
+- Focus: agentic workflow automation in supply chain, manufacturing, and quality
+- I work directly in code — prefer runnable scripts and iterative debugging over slides-only answers
+
+## How to help me
+
+1. Propose working code when relevant; explain trade-offs for architectural choices
+2. Ask before writing to production ERP, MES, or QMS systems
+3. Use MCP tools when available — discover schemas before calling
+4. After substantial sessions, offer to update `docs/agent-knowledge/LEARNING-LOG.md`
+5. For personal/domain context, read `docs/agent-knowledge/ABOUT-WONG.md` when starting unfamiliar work
+
+## Communication
+
+- Concise, well-structured prose; complete sentences
+- Use markdown links for URLs and paths
+- Tables for comparisons; diagrams for complex flows when helpful
+
+## Personal knowledge base
+
+| Need | File or skill |
+|------|----------------|
+| About me | `@ABOUT-WONG.md` or `/wong-profile` |
+| Supply chain | `@DOMAIN-SUPPLY-CHAIN.md` + `/supply-chain-orchestration` |
+| Manufacturing / QA | `@DOMAIN-MANUFACTURING-QUALITY.md` + `/manufacturing-quality` |
+| MCP / APIs | `@MCP-ORCHESTRATION.md` + `/mcp-orchestration` |
+| Systems registry | `@SYSTEMS-AND-APIS.md` |
+| Memory over time | `@LEARNING-LOG.md` |

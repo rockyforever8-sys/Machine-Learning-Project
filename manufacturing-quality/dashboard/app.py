@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import sys
 import time
 from datetime import datetime, timezone
@@ -52,6 +53,31 @@ def _run_triage(
     return {"report": report, "outputs": outputs}
 
 
+def _render_simple_table(rows: list[dict[str, object]]) -> None:
+    """Render a table without pyarrow (blocked on some corporate Windows policies)."""
+    if not rows:
+        st.info("No rows to display.")
+        return
+
+    columns = list(rows[0].keys())
+    header = "".join(f"<th>{html.escape(str(column))}</th>" for column in columns)
+    body_rows = []
+    for row in rows:
+        cells = "".join(
+            f"<td>{html.escape(str(row.get(column, '')))}</td>" for column in columns
+        )
+        body_rows.append(f"<tr>{cells}</tr>")
+
+    table_html = (
+        "<div style='overflow-x:auto;width:100%;'>"
+        "<table style='width:100%;border-collapse:collapse;font-size:0.9rem;'>"
+        f"<thead><tr>{header}</tr></thead>"
+        f"<tbody>{''.join(body_rows)}</tbody>"
+        "</table></div>"
+    )
+    st.markdown(table_html, unsafe_allow_html=True)
+
+
 def _status_badge(status: str) -> str:
     color = STATUS_COLORS.get(status, "#64748b")
     label = status.replace("_", " ").title()
@@ -101,7 +127,7 @@ def _render_element_table(report) -> None:
             }
         )
 
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    _render_simple_table(rows)
 
 
 def _render_binder_index(report) -> None:
@@ -114,7 +140,7 @@ def _render_binder_index(report) -> None:
         {"Page": page, "Elements": ", ".join(f"#{number}" for number in numbers)}
         for page, numbers in page_index
     ]
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    _render_simple_table(rows)
 
 
 def _render_sqe_checklist(report) -> None:

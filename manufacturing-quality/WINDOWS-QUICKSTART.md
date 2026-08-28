@@ -26,6 +26,24 @@ cd /d "C:\Users\kamyuen wong\OneDrive - JE\Desktop\BUDGET FY2627\MIT Applied Age
 
 Then open **http://127.0.0.1:8501** in Chrome.
 
+## Application Control / pyarrow blocked
+
+If you see:
+
+```text
+ImportError: DLL load failed while importing lib: An Application Control policy has blocked this file.
+```
+
+your corporate Windows policy is blocking **pyarrow** (used by Streamlit's interactive `st.dataframe`). The dashboard now uses a plain HTML table instead and does not require pyarrow.
+
+Update to the latest code:
+
+```bash
+git pull
+```
+
+Then restart the dashboard.
+
 ## Git pull conflict fix
 
 If `git pull` says `run-dashboard.bat` would be overwritten:

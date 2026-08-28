@@ -47,17 +47,16 @@ Press `Ctrl+C` to stop. Watcher writes the same reports (including `sqe-checklis
 
 ## Streamlit dashboard (recommended for OneDrive inbox)
 
-Local SQE dashboard with binder page references, SQE checklist, and download buttons.
+**You do not need Git Bash.** Double-click `run-dashboard.bat` in File Explorer.
+
+See [WINDOWS-QUICKSTART.md](./WINDOWS-QUICKSTART.md) for step-by-step Windows instructions.
 
 ```bash
+# Optional: launch from terminal instead
 cd manufacturing-quality
 pip install -r requirements.txt
 streamlit run dashboard/app.py
 ```
-
-Or double-click `run-dashboard.bat` on Windows.
-
-The sidebar defaults to your OneDrive `PPAP Inbox` path. Click **Run triage now** or enable **Auto-refresh inbox** to monitor supplier drops.
 
 ## CLI
 

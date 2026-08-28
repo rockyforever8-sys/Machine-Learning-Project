@@ -11,6 +11,9 @@ python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out 
 
 # Watch for live supplier drops
 python3 -m ppap_inbox_triage watch /path/to/inbox --output ./triage-out --pdf-text
+
+# Or use the local Streamlit dashboard (recommended for OneDrive inbox)
+cd manufacturing-quality && streamlit run dashboard/app.py
 ```
 
 See [manufacturing-quality/README.md](./manufacturing-quality/README.md) and [DOMAIN-MANUFACTURING-QUALITY.md](./DOMAIN-MANUFACTURING-QUALITY.md).

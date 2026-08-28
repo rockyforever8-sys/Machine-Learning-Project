@@ -45,6 +45,20 @@ python3 -m ppap_inbox_triage watch <inbox_path> --output ./triage-out --pdf-text
 
 Press `Ctrl+C` to stop. Watcher writes the same reports (including `sqe-checklist.md`) on each inbox change.
 
+## Streamlit dashboard (recommended for OneDrive inbox)
+
+Local SQE dashboard with binder page references, SQE checklist, and download buttons.
+
+```bash
+cd manufacturing-quality
+pip install -r requirements.txt
+streamlit run dashboard/app.py
+```
+
+Or double-click `run-dashboard.bat` on Windows.
+
+The sidebar defaults to your OneDrive `PPAP Inbox` path. Click **Run triage now** or enable **Auto-refresh inbox** to monitor supplier drops.
+
 ## CLI
 
 ```bash

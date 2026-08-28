@@ -10,11 +10,13 @@ from .elements import CRITICAL_ELEMENT_NUMBERS, PPAP_LEVEL_3_ELEMENTS
 from .models import (
     ElementMatch,
     ElementTriage,
+    InboxFile,
     MatchConfidence,
     OrphanFile,
     TriageReport,
     TriageStatus,
 )
+from .pdf_text import extract_pdf_text
 from .scanner import scan_inbox
 
 
@@ -77,11 +79,25 @@ def _build_actions(
     return actions
 
 
+def _classify_inbox_file(
+    inbox_file: InboxFile,
+    *,
+    use_pdf_text: bool,
+    pdf_max_pages: int,
+) -> list[ElementMatch]:
+    text_content = None
+    if use_pdf_text and inbox_file.suffix == ".pdf":
+        text_content = extract_pdf_text(inbox_file.path, max_pages=pdf_max_pages)
+    return classify_file(inbox_file, text_content=text_content)
+
+
 def triage_inbox(
     inbox_path: Path,
     *,
     submission_level: int = 3,
     recursive: bool = True,
+    use_pdf_text: bool = False,
+    pdf_max_pages: int = 5,
 ) -> TriageReport:
     if submission_level != 3:
         raise ValueError("Only PPAP Level 3 triage is supported in this release")
@@ -89,11 +105,19 @@ def triage_inbox(
     scanned_at = datetime.now(timezone.utc).isoformat()
     inbox_files = scan_inbox(inbox_path, recursive=recursive)
 
+    file_matches_cache: dict[str, list[ElementMatch]] = {}
+    for inbox_file in inbox_files:
+        file_matches_cache[inbox_file.relative_path] = _classify_inbox_file(
+            inbox_file,
+            use_pdf_text=use_pdf_text,
+            pdf_max_pages=pdf_max_pages,
+        )
+
     matches_by_element: dict[int, list[ElementMatch]] = defaultdict(list)
     assigned_files: set[str] = set()
 
     for inbox_file in inbox_files:
-        file_matches = classify_file(inbox_file)
+        file_matches = file_matches_cache[inbox_file.relative_path]
         if not file_matches:
             continue
 
@@ -118,6 +142,7 @@ def triage_inbox(
     missing_critical: list[int] = []
     duplicate_count = 0
     review_count = 0
+    content_classified_count = 0
 
     for element in PPAP_LEVEL_3_ELEMENTS:
         matches = matches_by_element.get(element.number, [])
@@ -137,6 +162,10 @@ def triage_inbox(
             review_count += 1
             notes.append("Filename match confidence is low")
 
+        if any(match.matched_pattern.startswith("content:") for match in matches):
+            notes.append("Classified using PDF text content")
+            content_classified_count += 1
+
         element_triages.append(
             ElementTriage(
                 element=element,
@@ -153,7 +182,7 @@ def triage_inbox(
     for inbox_file in inbox_files:
         if inbox_file.relative_path in assigned_files:
             continue
-        file_matches = classify_file(inbox_file)
+        file_matches = file_matches_cache[inbox_file.relative_path]
         if file_matches:
             orphans.append(
                 OrphanFile(
@@ -165,7 +194,7 @@ def triage_inbox(
             orphans.append(
                 OrphanFile(
                     file=inbox_file,
-                    reason="No PPAP element pattern matched",
+                    reason="No PPAP element pattern matched in filename or PDF text",
                 )
             )
 
@@ -190,6 +219,8 @@ def triage_inbox(
         "missing_element_numbers": missing_elements,
         "missing_critical_numbers": missing_critical,
         "completeness_pct": round((present_count / len(PPAP_LEVEL_3_ELEMENTS)) * 100, 1),
+        "pdf_text_enabled": use_pdf_text,
+        "content_classified_elements": content_classified_count,
     }
 
     actions = _build_actions(element_triages, orphans, missing_critical)

@@ -33,9 +33,10 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 
 1. Supplier drops files into an inbox folder (flat or nested).
 2. Scanner inventories files and extracts lightweight metadata.
-3. Classifier maps files to PPAP elements using filename patterns and optional text hints.
+3. Classifier maps files to PPAP elements using filename patterns and optional PDF text content.
 4. Triage engine computes completeness, duplicates, and review queue.
 5. Report generator outputs JSON, CSV, and Markdown for the SQE inbox.
+6. Watch mode polls the inbox and re-runs triage when new files stabilize.
 
 ## Triage Outcomes
 
@@ -47,5 +48,9 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 ## CLI
 
 ```bash
-python -m ppap_inbox_triage triage /path/to/inbox --output ./triage-out
+# One-shot triage with PDF text extraction
+python -m ppap_inbox_triage triage /path/to/inbox --output ./triage-out --pdf-text
+
+# Watch inbox for live supplier drops
+python -m ppap_inbox_triage watch /path/to/inbox --output ./triage-out --pdf-text --interval 2
 ```

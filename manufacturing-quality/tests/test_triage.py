@@ -3,12 +3,17 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from ppap_inbox_triage.classifier import classify_file
 from ppap_inbox_triage.models import InboxFile, MatchConfidence
+from ppap_inbox_triage.pdf_text import extract_pdf_text, pdf_text_available
 from ppap_inbox_triage.report import report_to_dict, write_all_reports
 from ppap_inbox_triage.scanner import scan_inbox
 from ppap_inbox_triage.triage import triage_inbox
+from ppap_inbox_triage.watcher import snapshot_inbox, watch_inbox
+
+from pdf_fixture import write_text_pdf
 
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "sample_inbox"
@@ -49,6 +54,44 @@ class ClassifierTests(unittest.TestCase):
         matches = classify_file(file)
         self.assertEqual(matches[0].element.number, 6)
 
+    def test_content_classification_from_pdf_text(self) -> None:
+        file = InboxFile(
+            path=Path("supplier_doc.pdf"),
+            relative_path="supplier_doc.pdf",
+            name="supplier_doc.pdf",
+            suffix=".pdf",
+            size_bytes=1,
+        )
+        matches = classify_file(
+            file,
+            text_content="Customer Engineering Approval signed by OEM quality.",
+        )
+        self.assertEqual(matches[0].element.number, 3)
+        self.assertTrue(matches[0].matched_pattern.startswith("content:"))
+
+
+@unittest.skipUnless(pdf_text_available(), "pypdf is required for PDF extraction tests")
+class PdfTextTests(unittest.TestCase):
+    def test_extract_pdf_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pdf_path = Path(temp_dir) / "approval.pdf"
+            write_text_pdf(pdf_path, "Customer Engineering Approval")
+            text = extract_pdf_text(pdf_path)
+            self.assertIsNotNone(text)
+            assert text is not None
+            self.assertIn("Customer Engineering Approval", text)
+
+    def test_pdf_text_classifies_ambiguous_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir)
+            pdf_path = inbox / "supplier_submission_rev_a.pdf"
+            write_text_pdf(pdf_path, "Customer Engineering Approval and sign-off")
+            report = triage_inbox(inbox, use_pdf_text=True)
+            self.assertNotIn(3, report.summary["missing_element_numbers"])
+            element_three = next(item for item in report.elements if item.element.number == 3)
+            self.assertEqual(element_three.status, "present")
+            self.assertIn("Classified using PDF text content", element_three.notes)
+
 
 class ScannerTests(unittest.TestCase):
     def test_scan_fixture_inbox(self) -> None:
@@ -56,6 +99,30 @@ class ScannerTests(unittest.TestCase):
         names = {file.name for file in files}
         self.assertIn("18_PSW_Signed.pdf", names)
         self.assertIn("random_supplier_cover_letter.pdf", names)
+
+
+class WatcherTests(unittest.TestCase):
+    def test_snapshot_tracks_file_count(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir)
+            snapshot = snapshot_inbox(inbox)
+            self.assertEqual(snapshot.file_count, 0)
+
+            (inbox / "psw.pdf").write_text("x", encoding="utf-8")
+            snapshot = snapshot_inbox(inbox)
+            self.assertEqual(snapshot.file_count, 1)
+
+    def test_watch_once_writes_reports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir) / "inbox"
+            output = Path(temp_dir) / "out"
+            inbox.mkdir()
+            (inbox / "18_PSW_Signed.pdf").write_text("x", encoding="utf-8")
+
+            with patch("ppap_inbox_triage.watcher.time.sleep", return_value=None):
+                watch_inbox(inbox, output, run_once=True)
+
+            self.assertTrue((output / "triage-report.json").exists())
 
 
 class TriageTests(unittest.TestCase):

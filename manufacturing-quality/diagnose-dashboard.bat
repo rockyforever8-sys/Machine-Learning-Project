@@ -29,7 +29,7 @@ if errorlevel 1 echo [FAIL] pypdf not installed
 
 echo.
 echo Checking PPAP module...
-"%PY%" -c "import sys; sys.path.insert(0, r'%~dp0'); from ppap_inbox_triage.triage import triage_inbox; print('[OK] ppap_inbox_triage')"`
+"%PY%" -c "import sys; sys.path.insert(0, '.'); from ppap_inbox_triage.triage import triage_inbox; print('[OK] ppap_inbox_triage')"
 if errorlevel 1 echo [FAIL] ppap_inbox_triage import failed
 
 echo.

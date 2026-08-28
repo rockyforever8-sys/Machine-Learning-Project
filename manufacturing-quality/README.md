@@ -14,9 +14,9 @@ python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out 
 
 1. **Scans** an inbox folder (recursive by default)
 2. **Detects layout** — binder vs discrete vs mixed submission
-3. **Classifies** each file to PPAP elements using filename patterns and PDF text (per-page for binders)
+3. **Classifies** each file to PPAP elements using filename patterns and AIAG semantic PDF content (per-page for binders; table-of-contents pages are skipped)
 4. **Triages** completeness, critical gaps, duplicates, and orphans
-5. **Writes** JSON, CSV, Markdown triage report, and `sqe-checklist.md` with binder page references
+5. **Writes** JSON, CSV, Markdown triage report, and `sqe-checklist.md` with binder page ranges and evidence terms
 6. **Watches** the inbox (optional `watch` command) and re-triages when new supplier files arrive
 
 ## Example output

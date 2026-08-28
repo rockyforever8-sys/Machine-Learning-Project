@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ppap_inbox_triage.report import format_console_summary, report_to_dict, write_all_reports
-from ppap_inbox_triage.sqe_checklist import SQE_VERIFICATION_CHECKS, build_binder_page_index
+from ppap_inbox_triage.sqe_checklist import SQE_VERIFICATION_CHECKS, build_binder_page_index, format_page_numbers
 from ppap_inbox_triage.triage import triage_inbox
 
 DEFAULT_INBOX = (
@@ -101,20 +101,24 @@ def _render_metrics(report) -> None:
         unsafe_allow_html=True,
     )
     st.markdown(_status_badge(report.status.value), unsafe_allow_html=True)
+    skipped = report.summary.get("index_pages_skipped") or []
+    if skipped:
+        st.caption(
+            "Table-of-contents/index pages skipped: "
+            + ", ".join(str(page) for page in skipped)
+            + ". Element pages are located by AIAG content evidence, not title listings."
+        )
 
 
 def _render_element_table(report) -> None:
     rows = []
     for triage in report.elements:
         primary = triage.matches[0].file.relative_path if triage.matches else "—"
-        pages = "—"
-        if triage.matches:
-            page_numbers = sorted(
-                {match.page_number for match in triage.matches if match.page_number is not None}
-            )
-            if page_numbers:
-                pages = ", ".join(str(page) for page in page_numbers)
-
+        evidence: list[str] = []
+        for match in triage.matches:
+            for item in match.evidence:
+                if item not in evidence:
+                    evidence.append(item)
         rows.append(
             {
                 "#": triage.element.number,
@@ -122,8 +126,11 @@ def _render_element_table(report) -> None:
                 "Status": triage.status.upper(),
                 "Priority": triage.element.priority.value,
                 "File": primary,
-                "Pages": pages,
-                "Notes": "; ".join(triage.notes) if triage.notes else "",
+                "Pages": format_page_numbers(triage.matches),
+                "AIAG evidence": ", ".join(evidence[:6]),
+                "Notes": "; ".join(
+                    note for note in triage.notes if not note.startswith("AIAG PPAP")
+                ),
             }
         )
 
@@ -145,13 +152,7 @@ def _render_binder_index(report) -> None:
 
 def _render_sqe_checklist(report) -> None:
     for triage in report.elements:
-        pages = "—"
-        if triage.matches:
-            page_numbers = sorted(
-                {match.page_number for match in triage.matches if match.page_number is not None}
-            )
-            if page_numbers:
-                pages = ", ".join(str(page) for page in page_numbers)
+        pages = format_page_numbers(triage.matches)
 
         checks = SQE_VERIFICATION_CHECKS.get(triage.element.number, ("Verify element content",))
         with st.expander(

@@ -40,6 +40,11 @@ class PpapElement:
     filename_patterns: tuple[str, ...]
     priority: ElementPriority
     physical_artifact: bool = False
+    content_markers: tuple[str, ...] = ()
+    unique_markers: tuple[str, ...] = ()
+    exclude_markers: tuple[str, ...] = ()
+    continuation_markers: tuple[str, ...] = ()
+    aiag_rule: str = ""
 
 
 @dataclass
@@ -60,6 +65,7 @@ class ElementMatch:
     score: float
     page_number: int | None = None
     match_mode: str = "filename"
+    evidence: tuple[str, ...] = ()
 
 
 @dataclass

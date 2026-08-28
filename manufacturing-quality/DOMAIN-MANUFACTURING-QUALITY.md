@@ -34,10 +34,22 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 1. Supplier drops files into an inbox folder (flat or nested).
 2. Scanner inventories files and extracts lightweight metadata.
 3. **Layout detection** decides whether the submission is a **binder** (one/multi-section PDF), **discrete** (separate element files), or **mixed**.
-4. Classifier maps files to PPAP elements using filename patterns and PDF text (per-page for binders).
+4. Classifier maps files to PPAP elements using filename patterns and **AIAG semantic content evidence** (per-page for binders). Table-of-contents / index pages are skipped so a title listing is not treated as the element itself.
 5. Triage engine computes completeness, duplicates, and review queue using layout-specific rules.
-6. Report generator outputs JSON, CSV, Markdown triage report, and `sqe-checklist.md` with binder page references.
+6. Report generator outputs JSON, CSV, Markdown triage report, and `sqe-checklist.md` with binder page ranges and evidence terms.
 7. Watch mode (optional) polls the inbox and re-runs triage when new files stabilize.
+
+### Binder page location (AIAG content, not titles)
+
+For a multi-section PPAP PDF (for example a 137-page Level 3 binder), every page with extractable text is scanned. A page is assigned to an element only when it contains **distinctive AIAG PPAP 4th Edition evidence** for that element (form fields, study metrics, table structure), not merely the element title.
+
+| Rule | Behavior |
+|------|----------|
+| Table of contents / index | Skipped. A page listing 8+ element titles (or "Table of Contents") is not an element location. |
+| Title-only mention | Not enough to mark an element present. |
+| Semantic evidence | Unique markers (e.g. PFMEA + RPN + process step, PSW declaration + submission level, Cpk/Ppk) locate the actual section. |
+| Section continuation | Following pages that continue the same table/form stay with that element until the next section starts. |
+| PSW checklist | The warrant form lists all 18 documents; only element 18 is assigned on that page. |
 
 ## Submission Layouts
 

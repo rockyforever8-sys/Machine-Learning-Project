@@ -99,11 +99,11 @@ class PdfTextTests(unittest.TestCase):
             write_multipage_text_pdf(
                 pdf_path,
                 [
-                    "Design Records drawing specification",
-                    "Process FMEA PFMEA failure mode analysis",
-                    "Control Plan production pre-launch",
-                    "Part Submission Warrant PSW signed",
-                    "Dimensional layout inspection FAI results",
+                    "Design Records drawing number 1616 title block engineering drawing revision A",
+                    "Process FMEA PFMEA process function current process control failure mode RPN severity occurrence detection",
+                    "Control Plan production control plan reaction plan sample frequency control method",
+                    "Part Submission Warrant PSW submission level supplier authorized signature declaration",
+                    "Dimensional Results layout inspection FAI balloon no CMM report measured value",
                 ],
             )
             report = triage_inbox(inbox, use_pdf_text=True)

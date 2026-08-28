@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from .binder import classify_binder_pages
 from .elements import PPAP_LEVEL_3_ELEMENTS
 from .models import ElementMatch, InboxFile, MatchConfidence, PpapElement
 
@@ -206,4 +207,4 @@ def classify_binder_pdf(
     file: InboxFile,
     page_texts: list[tuple[int, str]],
 ) -> list[ElementMatch]:
-    return classify_file(file, page_texts=page_texts)
+    return classify_binder_pages(file, page_texts)

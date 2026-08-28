@@ -50,6 +50,7 @@ def report_to_dict(report: TriageReport) -> dict:
                         "score": match.score,
                         "page_number": match.page_number,
                         "match_mode": match.match_mode,
+                        "evidence": list(match.evidence),
                     }
                     for match in triage.matches
                 ],
@@ -132,6 +133,14 @@ def write_markdown_report(report: TriageReport, output_path: Path) -> Path:
     binder_files = report.summary.get("binder_files", [])
     if binder_files:
         lines.append(f"- Binder files: {', '.join(f'`{path}`' for path in binder_files)}")
+
+    skipped_index = report.summary.get("index_pages_skipped") or []
+    if skipped_index:
+        lines.append(
+            "- Index/TOC pages skipped: "
+            + ", ".join(str(page) for page in skipped_index)
+            + " (titles on these pages are not treated as element locations)"
+        )
 
     page_index = build_binder_page_index(report)
     if page_index:

@@ -16,6 +16,40 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"2d[\s_-]?print",
         ),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "drawing number",
+            "drawing no",
+            "dwg no",
+            "title block",
+            "revision",
+            "material specification",
+            "tolerance",
+            "geometric dimension",
+            "gd&t",
+            "ballooned",
+            "engineering drawing",
+            "part print",
+            "specification sheet",
+            "cad data",
+            "2d print",
+            "sheet 1 of",
+            "scale",
+        ),
+        unique_markers=(
+            "title block",
+            "drawing number",
+            "drawing no",
+            "gd&t",
+            "ballooned drawing",
+            "engineering drawing",
+            "design record",
+        ),
+        exclude_markers=("checking fixture drawing", "gage drawing", "fixture drawing"),
+        continuation_markers=("dim", "tol", "note", "zone", "rev", "sheet"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.1: Design records must show the latest engineering "
+            "change level, including drawings, CAD/CAM data, and specifications."
+        ),
     ),
     PpapElement(
         number=2,
@@ -29,6 +63,33 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"change[\s_-]?document",
         ),
         priority=ElementPriority.MEDIUM,
+        content_markers=(
+            "engineering change notice",
+            "engineering change order",
+            "change notice",
+            "change request",
+            "ecn no",
+            "eco no",
+            "effectivity date",
+            "effective date",
+            "reason for change",
+            "change description",
+            "change level",
+            "authorized engineering change",
+        ),
+        unique_markers=(
+            "engineering change notice",
+            "engineering change order",
+            "ecn",
+            "eco",
+            "change notice",
+            "authorized engineering change",
+        ),
+        continuation_markers=("effectivity", "change level", "reason for change", "eco", "ecn"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.2: Include authorized engineering change documents "
+            "not yet recorded in the design record but incorporated in the product."
+        ),
     ),
     PpapElement(
         number=3,
@@ -41,6 +102,29 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"customer[\s_-]?sign[\s_-]?off",
         ),
         priority=ElementPriority.MEDIUM,
+        content_markers=(
+            "customer engineering approval",
+            "customer approval",
+            "engineering approval",
+            "deviation permit",
+            "temporary deviation",
+            "waiver",
+            "approved by customer",
+            "customer sign-off",
+            "customer signed",
+            "approval date",
+        ),
+        unique_markers=(
+            "customer engineering approval",
+            "deviation permit",
+            "customer approval",
+            "engineering approval",
+        ),
+        continuation_markers=("approved by", "deviation", "waiver", "customer signature"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.3: Customer engineering approval is required when "
+            "specified by the customer (signed approval or authorized deviation)."
+        ),
     ),
     PpapElement(
         number=4,
@@ -48,6 +132,37 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
         aliases=("dfmea", "design fmea"),
         filename_patterns=(r"\bdfmea\b", r"design[\s_-]?fmea"),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "dfmea",
+            "design fmea",
+            "design failure mode",
+            "potential failure mode",
+            "severity",
+            "occurrence",
+            "detection",
+            "rpn",
+            "recommended action",
+            "design function",
+            "failure effect",
+            "classification",
+            "action results",
+        ),
+        unique_markers=("dfmea", "design fmea", "design failure mode", "design function"),
+        exclude_markers=("process fmea", "pfmea"),
+        continuation_markers=(
+            "sev",
+            "occ",
+            "det",
+            "rpn",
+            "failure mode",
+            "severity",
+            "occurrence",
+            "detection",
+        ),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.4: A Design FMEA developed per the FMEA manual, "
+            "with severity/occurrence/detection and actions for high-risk items."
+        ),
     ),
     PpapElement(
         number=5,
@@ -60,6 +175,27 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"flow[\s_-]?diagram",
         ),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "process flow diagram",
+            "process flow",
+            "operation description",
+            "process step",
+            "process number",
+            "incoming material",
+            "shipping",
+            "rework",
+            "inspection station",
+            "process map",
+            "routing",
+            "op no",
+            "operation no",
+        ),
+        unique_markers=("process flow diagram", "process flow", "pfd", "process map"),
+        continuation_markers=("op no", "operation", "process step", "incoming", "shipping", "rework"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.5: Process flow diagrams must describe the entire "
+            "process from incoming material through shipping, including rework and inspection."
+        ),
     ),
     PpapElement(
         number=6,
@@ -67,6 +203,41 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
         aliases=("pfmea", "process fmea"),
         filename_patterns=(r"\bpfmea\b", r"process[\s_-]?fmea"),
         priority=ElementPriority.CRITICAL,
+        content_markers=(
+            "pfmea",
+            "process fmea",
+            "process failure mode",
+            "process function",
+            "process step",
+            "potential failure mode",
+            "severity",
+            "occurrence",
+            "detection",
+            "rpn",
+            "current process control",
+            "prevention",
+            "detection control",
+            "special characteristic",
+            "recommended action",
+        ),
+        unique_markers=("pfmea", "process fmea", "process failure mode", "current process control"),
+        exclude_markers=("design fmea", "dfmea"),
+        continuation_markers=(
+            "sev",
+            "occ",
+            "det",
+            "rpn",
+            "failure mode",
+            "process step",
+            "severity",
+            "occurrence",
+            "detection",
+            "process control",
+        ),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.6: A Process FMEA per the FMEA manual for the "
+            "manufacturing process, with special characteristics and process controls."
+        ),
     ),
     PpapElement(
         number=7,
@@ -74,6 +245,36 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
         aliases=("control plan", "pre-launch control plan"),
         filename_patterns=(r"control[\s_-]?plan", r"pre[\s_-]?launch"),
         priority=ElementPriority.CRITICAL,
+        content_markers=(
+            "control plan",
+            "pre-launch",
+            "prelaunch",
+            "production control plan",
+            "control method",
+            "reaction plan",
+            "sample size",
+            "sample frequency",
+            "evaluation measurement",
+            "special characteristic",
+            "product characteristic",
+            "process characteristic",
+            "specification tolerance",
+            "machine device jig",
+        ),
+        unique_markers=("control plan", "reaction plan", "sample frequency", "control method"),
+        continuation_markers=(
+            "sample size",
+            "sample frequency",
+            "control method",
+            "reaction plan",
+            "spec",
+            "tolerance",
+            "characteristic",
+        ),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.7: Control Plan per APQP listing controls, sampling, "
+            "and reaction plans that match the PFMEA and process flow."
+        ),
     ),
     PpapElement(
         number=8,
@@ -88,6 +289,50 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"linearity[\s_-]?study",
         ),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "measurement system analysis",
+            "gage r&r",
+            "gauge r&r",
+            "gage rr",
+            "gauge rr",
+            "gr&r",
+            "repeatability",
+            "reproducibility",
+            "equipment variation",
+            "appraiser variation",
+            "bias study",
+            "linearity study",
+            "stability study",
+            "anova",
+            "ndc",
+            "number of distinct categories",
+            "%grr",
+            "percent grr",
+        ),
+        unique_markers=(
+            "gage r&r",
+            "gauge r&r",
+            "measurement system analysis",
+            "repeatability",
+            "reproducibility",
+            "msa",
+            "%grr",
+        ),
+        continuation_markers=(
+            "appraiser",
+            "trial",
+            "average",
+            "range",
+            "ev",
+            "av",
+            "pv",
+            "grr",
+            "part",
+        ),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.8: Measurement System Analysis (Gage R&R, bias, "
+            "linearity, stability) for gauges used on special characteristics."
+        ),
     ),
     PpapElement(
         number=9,
@@ -103,6 +348,48 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"\bfai\b",
         ),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "dimensional results",
+            "dimensional report",
+            "layout inspection",
+            "inspection results",
+            "measured value",
+            "actual dimension",
+            "balloon no",
+            "balloon number",
+            "cmm report",
+            "first article",
+            "fai",
+            "in spec",
+            "out of spec",
+            "characteristic number",
+            "nominal",
+            "upper spec",
+            "lower spec",
+        ),
+        unique_markers=(
+            "dimensional results",
+            "layout inspection",
+            "first article",
+            "cmm report",
+            "balloon no",
+            "fai",
+        ),
+        continuation_markers=(
+            "nominal",
+            "actual",
+            "tol",
+            "measured",
+            "balloon",
+            "spec",
+            "ok",
+            "nok",
+            "dim",
+        ),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.9: Dimensional results for all design-record "
+            "characteristics, with measured values, spec limits, and OK/not OK."
+        ),
     ),
     PpapElement(
         number=10,
@@ -119,6 +406,47 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"hardness[\s_-]?test",
         ),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "material test",
+            "performance test",
+            "mill certificate",
+            "mill cert",
+            "certificate of analysis",
+            "chemical composition",
+            "tensile strength",
+            "yield strength",
+            "hardness",
+            "elongation",
+            "salt spray",
+            "coating thickness",
+            "heat number",
+            "lot number",
+            "test result",
+            "lab report",
+            "material specification",
+        ),
+        unique_markers=(
+            "mill certificate",
+            "certificate of analysis",
+            "tensile strength",
+            "chemical composition",
+            "performance test",
+            "material test",
+            "coa",
+        ),
+        continuation_markers=(
+            "heat no",
+            "lot no",
+            "composition",
+            "hardness",
+            "tensile",
+            "result",
+            "spec",
+        ),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.10: Material and/or performance test results "
+            "as specified on the design record (certs, lab reports, functional tests)."
+        ),
     ),
     PpapElement(
         number=11,
@@ -133,6 +461,36 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"initial[\s_-]?process",
         ),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "initial process study",
+            "process capability",
+            "capability study",
+            "cpk",
+            "ppk",
+            "control chart",
+            "x-bar",
+            "xbar",
+            "r-chart",
+            "spc",
+            "usl",
+            "lsl",
+            "subgroup",
+            "capability index",
+            "standard deviation",
+            "special characteristic",
+        ),
+        unique_markers=(
+            "cpk",
+            "ppk",
+            "process capability",
+            "initial process study",
+            "capability study",
+        ),
+        continuation_markers=("cpk", "ppk", "usl", "lsl", "subgroup", "xbar", "sample", "stdev"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.11: Initial process studies (Cpk/Ppk) for all "
+            "special characteristics identified in the control plan."
+        ),
     ),
     PpapElement(
         number=12,
@@ -145,6 +503,31 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"laboratory[\s_-]?scope",
         ),
         priority=ElementPriority.MEDIUM,
+        content_markers=(
+            "laboratory accreditation",
+            "iso 17025",
+            "iso/iec 17025",
+            "a2la",
+            "certificate of accreditation",
+            "laboratory scope",
+            "qualified laboratory",
+            "nabl",
+            "ukas",
+            "accreditation body",
+            "test method",
+        ),
+        unique_markers=(
+            "iso 17025",
+            "iso/iec 17025",
+            "laboratory accreditation",
+            "a2la",
+            "qualified laboratory",
+        ),
+        continuation_markers=("accreditation", "scope", "test method", "certificate"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.12: Inspection and testing for PPAP shall be "
+            "performed by a qualified laboratory with documented scope/accreditation."
+        ),
     ),
     PpapElement(
         number=13,
@@ -157,6 +540,24 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"master[\s_-]?panel",
         ),
         priority=ElementPriority.MEDIUM,
+        content_markers=(
+            "appearance approval report",
+            "appearance approval",
+            "color",
+            "gloss",
+            "texture",
+            "grain",
+            "surface appearance",
+            "master plaque",
+            "color master",
+            "aar",
+        ),
+        unique_markers=("appearance approval report", "appearance approval", "aar", "color master"),
+        continuation_markers=("color", "gloss", "texture", "grain", "appearance"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.13: Appearance Approval Report (AAR) is required "
+            "for parts with color, grain, or appearance requirements."
+        ),
     ),
     PpapElement(
         number=14,
@@ -170,6 +571,29 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
         ),
         priority=ElementPriority.MEDIUM,
         physical_artifact=True,
+        content_markers=(
+            "sample production parts",
+            "sample parts",
+            "production sample",
+            "sample quantity",
+            "sample tag",
+            "sample label",
+            "packing list",
+            "shipped samples",
+            "sample submission",
+        ),
+        unique_markers=(
+            "sample production parts",
+            "sample parts",
+            "production sample",
+            "sample tag",
+        ),
+        exclude_markers=("master sample",),
+        continuation_markers=("sample qty", "quantity", "tag no", "packing list"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.14: Sample production parts must be provided as "
+            "requested by the customer; documentation alone does not replace the parts."
+        ),
     ),
     PpapElement(
         number=15,
@@ -178,6 +602,19 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
         filename_patterns=(r"master[\s_-]?sample",),
         priority=ElementPriority.LOW,
         physical_artifact=True,
+        content_markers=(
+            "master sample",
+            "retained master",
+            "master sample agreement",
+            "customer signed master",
+            "master sample retention",
+        ),
+        unique_markers=("master sample", "retained master", "master sample agreement"),
+        continuation_markers=("master sample", "retained", "storage location"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.15: A master sample shall be retained when required "
+            "by the customer or the organization, and identified as such."
+        ),
     ),
     PpapElement(
         number=16,
@@ -192,6 +629,26 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
         ),
         priority=ElementPriority.LOW,
         physical_artifact=True,
+        content_markers=(
+            "checking aid",
+            "checking fixture",
+            "inspection fixture",
+            "go/no-go",
+            "go no-go",
+            "go no go",
+            "gage design",
+            "check fixture",
+            "inspection template",
+            "poke yoke",
+            "poka yoke",
+            "checking aid number",
+        ),
+        unique_markers=("checking aid", "checking fixture", "go/no-go", "go no-go", "inspection fixture"),
+        continuation_markers=("fixture no", "gage no", "calibration", "checking aid"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.16: Checking aids (fixtures, templates, variable "
+            "and attribute gauges) shall be certified to design records if used."
+        ),
     ),
     PpapElement(
         number=17,
@@ -204,6 +661,29 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"customer[\s_-]?checklist",
         ),
         priority=ElementPriority.HIGH,
+        content_markers=(
+            "customer specific requirement",
+            "customer-specific",
+            "csr checklist",
+            "oem requirement",
+            "ford csr",
+            "gm csr",
+            "stellantis",
+            "iatf",
+            "customer checklist",
+            "oem addendum",
+        ),
+        unique_markers=(
+            "customer specific requirement",
+            "customer-specific",
+            "csr",
+            "oem requirement",
+        ),
+        continuation_markers=("csr", "oem", "customer requirement", "checklist"),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.17: The organization shall meet all applicable "
+            "customer-specific requirements and provide evidence in the submission."
+        ),
     ),
     PpapElement(
         number=18,
@@ -215,6 +695,44 @@ PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
             r"submission[\s_-]?warrant",
         ),
         priority=ElementPriority.CRITICAL,
+        content_markers=(
+            "part submission warrant",
+            "psw",
+            "submission level",
+            "engineering drawing change level",
+            "additional engineering changes",
+            "shown on drawing",
+            "purchase order",
+            "checking aid no",
+            "safety and/or government",
+            "submitted for",
+            "declaration",
+            "supplier authorized signature",
+            "customer signature",
+            "molds",
+            "dies",
+            "materials reporting",
+            "part name",
+            "part number",
+        ),
+        unique_markers=(
+            "part submission warrant",
+            "psw",
+            "supplier authorized signature",
+            "submission warrant",
+            "submission level",
+        ),
+        continuation_markers=(
+            "declaration",
+            "authorized signature",
+            "submission level",
+            "part number",
+            "warrant",
+        ),
+        aiag_rule=(
+            "AIAG PPAP 4th Ed. §2.2.18: A completed Part Submission Warrant (PSW) is "
+            "required, signed by the supplier, with correct part data and submission level."
+        ),
     ),
 )
 
@@ -223,3 +741,7 @@ CRITICAL_ELEMENT_NUMBERS: frozenset[int] = frozenset(
     for element in PPAP_LEVEL_3_ELEMENTS
     if element.priority == ElementPriority.CRITICAL
 )
+
+ELEMENT_BY_NUMBER: dict[int, PpapElement] = {
+    element.number: element for element in PPAP_LEVEL_3_ELEMENTS
+}

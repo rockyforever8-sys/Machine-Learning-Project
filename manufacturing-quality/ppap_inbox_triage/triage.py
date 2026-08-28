@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .binder import find_index_pages
 from .classifier import classify_binder_pdf, classify_file, content_element_hits
 from .elements import CRITICAL_ELEMENT_NUMBERS, PPAP_LEVEL_3_ELEMENTS
 from .layout import (
@@ -24,6 +25,7 @@ from .models import (
 )
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
 from .scanner import scan_inbox
+from .sqe_checklist import compact_page_range, format_page_numbers
 
 
 def _element_status(
@@ -125,15 +127,15 @@ def _classify_inbox_file(
     use_pdf_text: bool,
     pdf_max_pages: int,
     binder_mode: bool,
-) -> list[ElementMatch]:
+) -> tuple[list[ElementMatch], list[tuple[int, str]] | None]:
     if binder_mode and inbox_file.suffix.lower() == ".pdf":
         page_texts = extract_pdf_pages(inbox_file.path, max_pages=ALL_PAGES)
-        return classify_binder_pdf(inbox_file, page_texts)
+        return classify_binder_pdf(inbox_file, page_texts), page_texts
 
     text_content = None
     if use_pdf_text and inbox_file.suffix.lower() == ".pdf":
         text_content = extract_pdf_text(inbox_file.path, max_pages=pdf_max_pages)
-    return classify_file(inbox_file, text_content=text_content)
+    return classify_file(inbox_file, text_content=text_content), None
 
 
 def _assign_discrete_file(
@@ -200,7 +202,7 @@ def triage_inbox(
     probe_cache: dict[str, list[ElementMatch]] = {}
     element_hits_by_file: dict[str, set[int]] = {}
     for inbox_file in inbox_files:
-        probe_matches = _classify_inbox_file(
+        probe_matches, _ = _classify_inbox_file(
             inbox_file,
             use_pdf_text=use_pdf_text,
             pdf_max_pages=pdf_max_pages,
@@ -225,14 +227,20 @@ def triage_inbox(
         )
 
     file_matches_cache: dict[str, list[ElementMatch]] = {}
+    index_pages_by_file: dict[str, list[int]] = {}
+    binder_pages_with_text = 0
     for inbox_file in inbox_files:
         is_binder = inbox_file.relative_path in binder_files
-        file_matches_cache[inbox_file.relative_path] = _classify_inbox_file(
+        matches, page_texts = _classify_inbox_file(
             inbox_file,
             use_pdf_text=use_pdf_text,
             pdf_max_pages=pdf_max_pages,
             binder_mode=is_binder,
         )
+        file_matches_cache[inbox_file.relative_path] = matches
+        if page_texts:
+            index_pages_by_file[inbox_file.relative_path] = find_index_pages(page_texts)
+            binder_pages_with_text += len(page_texts)
 
     matches_by_element: dict[int, list[ElementMatch]] = defaultdict(list)
     assigned_files: set[str] = set()
@@ -283,13 +291,17 @@ def triage_inbox(
         binder_matches = [match for match in matches if match.match_mode == "binder"]
         content_matches = [match for match in matches if match.match_mode == "content"]
         if binder_matches:
-            pages = sorted(
-                {match.page_number for match in binder_matches if match.page_number is not None}
-            )
-            if pages:
-                notes.append(f"Detected in PPAP binder pages: {', '.join(str(page) for page in pages)}")
-            else:
-                notes.append("Detected in PPAP binder")
+            pages = format_page_numbers(binder_matches)
+            notes.append(f"Detected in PPAP binder pages: {pages}")
+            evidence: list[str] = []
+            for match in binder_matches:
+                for item in match.evidence:
+                    if item not in evidence:
+                        evidence.append(item)
+            if evidence:
+                notes.append("AIAG content evidence: " + ", ".join(evidence[:8]))
+            if element.aiag_rule:
+                notes.append(element.aiag_rule)
             binder_element_count += 1
         elif content_matches:
             notes.append("Classified using PDF text content")
@@ -338,6 +350,10 @@ def triage_inbox(
     else:
         status = TriageStatus.NEEDS_CLARIFICATION
 
+    skipped_index_pages = sorted(
+        {page for pages in index_pages_by_file.values() for page in pages}
+    )
+
     summary: dict[str, Any] = {
         "files_scanned": len(inbox_files),
         "elements_present": present_count,
@@ -353,6 +369,8 @@ def triage_inbox(
         "binder_classified_elements": binder_element_count,
         "submission_layout": submission_layout.value,
         "binder_files": sorted(binder_files),
+        "binder_pages_with_text": binder_pages_with_text,
+        "index_pages_skipped": skipped_index_pages,
     }
 
     actions = _build_actions(
@@ -362,6 +380,13 @@ def triage_inbox(
         submission_layout=submission_layout,
         binder_files=binder_files,
     )
+    if skipped_index_pages:
+        actions.insert(
+            1 if actions else 0,
+            "Skipped table-of-contents/index pages "
+            f"{compact_page_range(skipped_index_pages)} — element locations use "
+            "AIAG content evidence, not title listings",
+        )
 
     return TriageReport(
         inbox_path=inbox_path.resolve(),

@@ -84,11 +84,28 @@ def collect_page_numbers(matches: list[ElementMatch]) -> list[int]:
     return sorted({match.page_number for match in matches if match.page_number is not None})
 
 
-def format_page_numbers(matches: list[ElementMatch]) -> str:
-    pages = collect_page_numbers(matches)
+def compact_page_range(pages: list[int]) -> str:
     if not pages:
         return "—"
-    return ", ".join(str(page) for page in pages)
+    ordered = sorted(set(pages))
+    ranges: list[tuple[int, int]] = []
+    start = previous = ordered[0]
+    for page in ordered[1:]:
+        if page == previous + 1:
+            previous = page
+            continue
+        ranges.append((start, previous))
+        start = previous = page
+    ranges.append((start, previous))
+    parts = [
+        str(low) if low == high else f"{low}-{high}"
+        for low, high in ranges
+    ]
+    return ", ".join(parts)
+
+
+def format_page_numbers(matches: list[ElementMatch]) -> str:
+    return compact_page_range(collect_page_numbers(matches))
 
 
 def build_binder_page_index(report: TriageReport) -> list[tuple[int, list[int]]]:

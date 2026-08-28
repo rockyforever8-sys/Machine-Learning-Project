@@ -2,82 +2,155 @@
 
 > **Purpose:** Single source of truth for platforms Wong's agents connect to. **Never store secrets here** — only env var names and auth patterns.
 
+**Last updated:** 2026-08-28
+
 Attach with `@SYSTEMS-AND-APIS.md` when building or debugging integrations.
 
 ---
 
-## Registry template (copy per system)
+## Environment summary
 
-### [System Name]
-
-| Field | Value |
-|-------|-------|
-| **Vendor / product** | |
-| **Purpose** | e.g. ERP, MES, QMS, WMS, TMS |
-| **Environment** | prod / staging / sandbox |
-| **Base URL** | `https://...` |
-| **API type** | REST / OData / SOAP / GraphQL / file drop |
-| **Auth method** | OAuth2 / API key / cert / SSO |
-| **Env vars** | `SYSTEM_X_API_KEY`, `SYSTEM_X_BASE_URL` |
-| **MCP server** | Built-in name / custom / none |
-| **Agent access** | read-only / read-write / human-approved writes |
-| **Owner / support** | team or person |
-| **Compliance notes** | audit log, validation, Part 11, etc. |
-
-**Key endpoints / objects:**
-
-| Object | Endpoint or table | Notes |
-|--------|-------------------|-------|
-| | | |
-
-**Rate limits / quirks:**
-
-- 
+| Attribute | Value |
+|-----------|-------|
+| **Deployment** | On-prem |
+| **Integration maturity** | Exports and UI today — **no live APIs or MCP connected yet** |
+| **Primary language** | Python |
+| **Agent QMS policy** | Write non-critical to prod when validated; human sign-off for safety-critical |
 
 ---
 
-## Systems (fill in)
+## Oracle (ERP)
 
-### ERP
+| Field | Value |
+|-------|-------|
+| **Vendor / product** | Oracle ERP |
+| **Purpose** | ERP — procurement, materials, orders |
+| **Environment** | On-prem prod |
+| **API type** | **Exports / UI** (no agent API today) |
+| **Auth method** | TBD when integrated |
+| **Agent access** | Read via scheduled exports; no auto-write until approved |
+| **Compliance notes** | Source for PO, material master, supplier links |
 
-<!-- duplicate template above -->
+**Planned ingestion:**
 
-### MES
+| Object | Source | Format | Notes |
+|--------|--------|--------|-------|
+| Purchase orders | Export / report | TBD | Map fields in future chat |
+| Material master | Export / report | TBD | Link to PPAP/FAI parts |
+| Supplier master | Export / report | TBD | |
 
-### QMS
+**Rate limits / quirks:**
 
-### WMS / Inventory
+- On-prem; design file-drop or scheduled export pipelines in Python first.
 
-### Planning / APS
+---
 
-### Supplier portal
+## In-house MES
 
-### Document management
+| Field | Value |
+|-------|-------|
+| **Vendor / product** | In-house (custom) |
+| **Purpose** | Manufacturing execution — work orders, operations, production data |
+| **Environment** | On-prem prod |
+| **API type** | **Exports / UI** |
+| **Agent access** | Read via exports; writes require validation |
+| **Compliance notes** | Links to lots, operations, OEE data for Six Sigma |
 
-### Communication (Slack, Teams, email)
+**Key objects:**
+
+| Object | Notes |
+|--------|-------|
+| Work order | |
+| Operation / step | |
+| Production counts / downtime | OEE inputs |
+
+---
+
+## In-house database / QMS
+
+| Field | Value |
+|-------|-------|
+| **Vendor / product** | In-house database (QMS) |
+| **Purpose** | PPAP, FAI, approvals, quality records, lab results |
+| **Environment** | On-prem prod |
+| **API type** | **Exports / UI** (direct DB access possible later — confirm with Wong) |
+| **Agent access** | See write policy below |
+| **Compliance notes** | IATF 16949, CQI-9/11/12, audit trail required |
+
+**Write policy:**
+
+| Record type | Agent may |
+|-------------|-----------|
+| Reminders, status updates, non-critical routing | Write after workflow validated |
+| PPAP accept/reject (non-safety) | Write with audit log |
+| FAI disposition, safety-critical release | **Recommend only — human sign-off** |
+| Final approval / digital signature | Human only |
+
+**Key objects:**
+
+| Object | Workflow |
+|--------|----------|
+| PPAP package | Inbox → review → accept/reject → loop |
+| FAI record | Supplier vs drawing vs in-house compare |
+| Feasibility review | 3-party spec/material review |
+| Lab results | Measurement alignment resolution |
+| Approval / signature | Digital routing for feasibility |
+
+---
+
+## Supplier portal / collaboration
+
+| Field | Value |
+|-------|-------|
+| **Status** | To be integrated — supplier invited into feasibility & PPAP loops |
+| **Purpose** | Supplier submissions, deviation proposals, sample timing |
+| **Agent access** | TBD — likely email/file ingest initially |
+
+---
+
+## Document management / drawings
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Drawing specifications for FAI comparison |
+| **Agent access** | Read specs for automated compare (format TBD: PDF, CAD metadata, BOM) |
+
+---
+
+## Communication
+
+| Channel | Status | Used for |
+|---------|--------|----------|
+| Slack | **Not connected** | Future: alerts, escalations |
+| Teams | **Not connected** | Future |
+| Email | **Not connected via MCP** | Likely first channel for reminders |
+| In-house notification | TBD | PPAP/feasibility reminders |
 
 ---
 
 ## MCP servers configured
 
-| Server | Namespace | Status | Used for |
-|--------|-----------|--------|----------|
-| Slack | Slack | | alerts, approvals |
-| Notion | Notion | | knowledge base |
-| Composio | Composio | | multi-app orchestration |
-| <!-- custom --> | | | |
+| Server | Status | Used for |
+|--------|--------|----------|
+| All | **None connected** | Greenfield — build Python file pipelines first, then add MCP |
 
-Config file: `.cursor/mcp.json` (project) or Cursor Settings → MCP (global).
+Config file (when ready): `.cursor/mcp.json`
+
+**Recommended first connections (when Wong approves):**
+
+1. Email MCP or SMTP wrapper — PPAP reminders and escalations
+2. Custom MCP for in-house QMS — when API or DB read layer exists
+3. File-watch MCP or scheduled folder ingest — Oracle/MES exports
 
 ---
 
-## Integration patterns Wong uses
+## Integration patterns (Wong's environment)
 
-1. **Read → analyze → recommend** (safe default for new workflows)
-2. **Read → transform → write to staging** (validate before prod)
-3. **Human-in-the-loop approve → write to prod** (QMS, batch release)
-4. **Scheduled sync** (nightly master data, inventory snapshots)
-5. **Event-driven** (webhook → agent → action)
+1. **Export → Python ingest → analyze → report** (current default — no API)
+2. **Staging table → validate → promote to QMS** (before prod writes)
+3. **Human-in-the-loop approve → QMS write** (safety-critical FAI, final approval)
+4. **Loop with state machine** — PPAP/FAI/feasibility: pending → review → reject/accept → remind → escalate
+5. **Graph model** — parallel feasibility paths with critical-path visibility for launch dates
 
 ---
 
@@ -85,7 +158,17 @@ Config file: `.cursor/mcp.json` (project) or Cursor Settings → MCP (global).
 
 | Class | Examples | Agent rules |
 |-------|----------|-------------|
-| Public | marketing, published specs | OK to use in prompts |
-| Internal | schedules, KPIs | OK in private agent sessions |
-| Confidential | supplier pricing, unreleased products | Minimize in logs; no external LLM if policy requires |
-| Regulated | batch records, CAPA, patient safety | Strict audit; human approval for writes |
+| Public | Published standards (IATF, CQI references) | OK in prompts |
+| Internal | Schedules, OTIF, feasibility status | OK in private sessions |
+| Confidential | Unreleased product specs, supplier pricing | Minimize in logs |
+| Regulated | PPAP, FAI, lab records, IMDS declarations | Audit trail; human sign-off for safety |
+
+---
+
+## Open questions
+
+- [ ] Oracle export report names and cadence
+- [ ] QMS direct DB access vs export-only
+- [ ] Digital signature platform/product
+- [ ] Drawing/spec file formats and storage location
+- [ ] Supplier portal mechanics (if any)

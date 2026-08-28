@@ -1,6 +1,8 @@
 # Supply Chain Domain Knowledge
 
-> Attach with `@DOMAIN-SUPPLY-CHAIN.md` for planning, logistics, procurement, and inventory workflows.
+> Attach with `@DOMAIN-SUPPLY-CHAIN.md` for planning, procurement, supplier risk, and contingency workflows.
+
+**Last updated:** 2026-08-28
 
 ---
 
@@ -8,81 +10,123 @@
 
 Processes Wong automates in supply chain:
 
-- [ ] Demand forecasting & S&OP
-- [ ] Purchase order lifecycle
-- [ ] Supplier performance & risk
-- [ ] Inbound / outbound logistics
-- [ ] Inventory optimization
-- [ ] Exception management (shortages, delays)
+- [x] **Supplier quality coordination** (PPAP timing, feasibility with buyer)
+- [x] **Supply risk mitigation & contingency** (VUCA planning)
+- [x] **Automating SC operations workflows** (approvals, reminders, escalation)
+- [x] Procurement support (Oracle — export-based today)
+- [ ] Demand forecasting & S&OP (secondary)
+- [ ] Inbound / outbound logistics (secondary)
+- [ ] Inventory optimization (secondary)
+
+---
+
+## Strategic context: VUCA supply chain
+
+Wong's passion area: **contingency planning** when supply is volatile, uncertain, complex, and ambiguous.
+
+Agents should support:
+
+- Scenario modeling (single-source risk, geographic concentration, lead-time buffers)
+- Supplier alternates and qualification status linkage to PPAP state
+- Early warning when feasibility/PPAP/sample paths threaten **product launch**
+
+---
+
+## Three-party model (supply chain angle)
+
+| Party | SC responsibility |
+|-------|-------------------|
+| **Supply chain buyer** | Quote evaluation, supplier selection, commercial terms, launch timing |
+| **Supplier quality** | PPAP, FAI, compliance evidence |
+| **Product engineering** | Spec feasibility, DFX |
+
+**Known bottlenecks agents should design around:**
+
+- Bureaucratic approvals → automate status, reminders, escalation, parallel-path visibility
+- Communication gaps → single source of truth in QMS + graph views
+- Weak design inputs → flag missing specs early in feasibility
 
 ---
 
 ## Key metrics & definitions
 
-| Metric | Definition | Source system |
-|--------|------------|---------------|
-| OTIF | On-time in-full delivery | |
-| DOS | Days of supply | |
-| Fill rate | | |
-| Lead time | | |
+| Metric | Definition | Source |
+|--------|------------|--------|
+| OTIF | On-time in-full delivery | Oracle (export) |
+| PPAP cycle time | Inbox → final approval | In-house QMS |
+| Feasibility cycle time | Request → sample approval | In-house QMS |
+| Launch risk days | Slip vs product launch milestone | Program schedule + QMS |
+| Supplier qualification | PPAP status + audit certs | QMS + supplier records |
 
 ---
 
-## Common workflow patterns
+## Workflow patterns
 
-### 1. Exception triage (shortage / delay)
-
-```
-Trigger: alert or daily report
-→ Pull open POs + inventory + demand
-→ Classify severity (line stop vs buffer)
-→ Draft recommendation (expedite, substitute, reschedule)
-→ Notify owner (Slack / email)
-→ Log decision in LEARNING-LOG
-```
-
-### 2. Supplier risk check
+### 1. PPAP-driven supplier readiness
 
 ```
-Trigger: new PO or periodic review
-→ Fetch supplier scorecard + open issues
-→ Cross-check certifications / audit dates
-→ Flag if threshold breached
-→ Optional: hold PO pending approval
+Trigger: new part for production
+→ Check PPAP status in QMS
+→ If incomplete: block production release recommendation
+→ Coordinate with buyer on launch-critical parts
+→ Escalate overdue PPAP tied to launch date
 ```
 
-### 3. Inventory health snapshot
+### 2. Feasibility & sample timing (launch protection)
 
 ```
-Trigger: scheduled
-→ Aggregate by SKU / location
-→ Compare to min/max or safety stock
-→ Output exceptions list + suggested actions
+Trigger: new component quote
+→ Start 3-party feasibility (see DOMAIN-MANUFACTURING-QUALITY.md)
+→ Graph: parallel paths with milestones
+→ Alert buyer when sample approval slips threaten launch
+→ Link to contingency options (alternate supplier, redesign)
+```
+
+### 3. Supply risk / contingency
+
+```
+Trigger: periodic review or disruption event
+→ Rank parts by single-source, geography, PPAP status, lead time
+→ Cross-reference open feasibility and PPAP gaps
+→ Output risk register + mitigation options for Wong
+```
+
+### 4. Oracle data ingest (current state)
+
+```
+Trigger: scheduled export
+→ Python ingest PO, material, supplier master
+→ Join to QMS PPAP/FAI status
+→ Exception report: parts without approved PPAP near need date
 ```
 
 ---
 
-## Data entities (map to your ERP)
+## Data entities (Oracle + QMS)
 
-| Entity | Key fields | Notes |
-|--------|------------|-------|
-| Purchase order | PO number, vendor, lines, dates | |
-| ASN | | |
-| SKU / material | | |
-| Location / plant | | |
+| Entity | Key fields | System |
+|--------|------------|--------|
+| Purchase order | PO, vendor, part, dates | Oracle |
+| Material / part | number, description, source | Oracle |
+| Supplier | ID, name, certs | Oracle + QMS |
+| PPAP | part, supplier, status, due | QMS |
+| Feasibility | part, 3-party status, launch link | QMS |
+| Launch milestone | product, date | Program / PLM (TBD) |
 
 ---
 
 ## Agent guardrails (supply chain)
 
-- Do not auto-approve POs above `$<!-- threshold -->` without human sign-off.
-- Prefer **read-only** queries until workflow is validated.
-- Timestamp all recommendations with data-as-of time.
-- When systems disagree, surface both values — do not silently merge.
+- Do not auto-approve supplier commercial commits — buyer signs.
+- Tie escalation to **launch date risk**, not just calendar age.
+- Prefer **read-only** Oracle until export mappings are validated.
+- Surface PPAP/FAI gaps before recommending production release.
+- Design for on-prem exports — no assumed cloud integrations.
 
 ---
 
-## Open questions / to document
+## Open questions
 
-- 
-- 
+- [ ] Product launch schedule system of record
+- [ ] Supplier scorecard existence and format
+- [ ] Contingency plan template Wong uses today

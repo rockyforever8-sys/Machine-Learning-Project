@@ -1,65 +1,68 @@
 ---
 name: manufacturing-quality
 description: |
-  Support manufacturing execution and quality workflows: SPC exceptions, CAPA intake,
-  batch traceability, inspection data, and audit prep. Use when Wong mentions MES, QMS,
-  NCR, CAPA, SPC, lot traceability, batch release, or GxP compliance.
+  PPAP inbox-to-approval loops, First Article Inspection (FAI) with Cpk and anomaly detection,
+  3-party component feasibility with graph parallel paths, IATF/CQI/IMDS compliance checks.
+  Use when Wong mentions PPAP, FAI, first article, Cpk, supplier inspection, feasibility review,
+  DFM, sample approval, or digital signature routing for quality.
 ---
 
-# Manufacturing & Quality Workflows
+# Manufacturing & Quality Workflows (Wong)
 
 ## Prerequisites
 
-- `@DOMAIN-MANUFACTURING-QUALITY.md` in context
-- `@SYSTEMS-AND-APIS.md` for MES/QMS access
-- Understand compliance tier (ISO, IATF, Part 11, etc.) from domain doc
+- `@DOMAIN-MANUFACTURING-QUALITY.md` and `@ABOUT-WONG.md` in context
+- `@SYSTEMS-AND-APIS.md` for in-house QMS/MES access patterns
+- **Python** for statistics (Cpk, outliers, fake-data heuristics)
+- Data via **exports/UI** unless API layer exists
 
-## Workflow
+## Wong's top 3 workflows
 
-### 1. Classify request
+### 1. PPAP automation
 
-| Class | Agent may | Agent must not |
-|-------|-----------|----------------|
-| Analysis / reporting | Read data, summarize, chart | Auto-close CAPA or release batch |
-| Drafting | 5-Why skeleton, investigation checklist | Submit as official record without review |
-| Integration | Read via MCP, stage transforms | Write to validated prod records without approval |
+1. Ingest PPAP from QMS inbox or file drop
+2. Checklist vs IATF PPAP elements — flag gaps
+3. Route to reviewer; recommend accept / reject / hold
+4. On reject: notify, set resubmit deadline, **loop**
+5. Scheduled reminders → tiered escalation
+6. Log every state change; human signs final approval
 
-### 2. Traceability check
+### 2. FAI automation
 
-For any lot/batch question:
+1. Ingest **three sources**: supplier inspection, drawing specs, in-house measurements
+2. Align characteristics (units, datums, tolerances)
+3. **Auto-calculate Cpk** per characteristic (Python)
+4. Statistical insights + **anomaly/fake-data detection**
+5. Flag lab deltas (supplier vs in-house)
+6. Propose measurement alignment and improvement actions
+7. Route for review — **human sign-off** if safety-critical
 
-1. Identify system of record (MES vs QMS)
-2. Pull genealogy: materials → operations → inspections → deviations
-3. Present chain with document IDs and timestamps
+### 3. Component feasibility (3-party)
 
-### 3. SPC / exception handling
+1. Parties: **buyer**, **supplier quality**, **product engineering**
+2. DFX: DFM, DFA, DFR, simplicity/modularity, sustainability
+3. Check regulations: RoHS, ELV, REACH, GADSL, IMDS as applicable
+4. Track deviations and improvement proposals
+5. Monitor sample timing vs **product launch**
+6. **Graph engineering** — parallel paths, critical path, blocked nodes
+7. Digital signature routing — human executes signatures
 
-1. Fetch measurement series and control limits
-2. Apply agreed rules (document which rules in output)
-3. Classify special vs common cause **hypothesis** — label as draft for QE review
-4. Suggest investigation steps; do not disposition material
+## Interaction style
 
-### 4. CAPA assist
+1. Ask **1–3 clarifying questions** before building
+2. Then deliver **Python prototypes** — not over-cautious refusal
+3. On-prem, export-first — do not assume cloud APIs
 
-1. Gather linked NCRs, lots, equipment (read-only)
-2. Search similar historical CAPAs if data available
-3. Draft problem statement and containment ideas for human edit
+## Guardrails
 
-### 5. Output format
+| Action | Policy |
+|--------|--------|
+| Reminders, status, non-critical routing | Auto OK when validated |
+| PPAP reject recommendation | Suggest; human confirms reject |
+| FAI safety-critical disposition | Recommend only |
+| Final approval / signature | Human only |
+| Supplier data | Always cross-check in-house |
 
-Always include:
+## Capture
 
-- **Disclaimer:** "Draft for human review — not an official quality record"
-- **Data sources** and retrieval time
-- **Gaps** in data that block a complete answer
-
-### 6. Capture
-
-Log compliance-relevant decisions in `LEARNING-LOG.md`. Update domain doc if new SOP references or field maps are discovered.
-
-## Guardrails (non-negotiable)
-
-1. No autonomous write to released records or approved CAPA closures
-2. Preserve audit trail — what was read, suggested, and who approved
-3. Escalate when spec or procedure is ambiguous
-4. Dev/test environments only for agent experiments on QMS writes
+Offer to update `LEARNING-LOG.md` with field mappings, thresholds, and export formats discovered.

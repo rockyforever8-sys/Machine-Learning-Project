@@ -23,14 +23,23 @@ Format: newest entries at the top.
 
 ## Entries
 
+### 2026-08-28 — Wong profile questionnaire completed
+
+**Context:** Profile chat — Wong answered systems, priorities, compliance, and working-style questions.  
+**Decision:** Documented Oracle + in-house MES + in-house QMS (on-prem, export/UI only); three priority automations: PPAP loop, FAI with Cpk/anomaly detection, 3-party component feasibility with graph engineering.  
+**Why:** Gives all future agents accurate context without re-asking basics.  
+**Gotchas:** No MCP/tools connected yet — start with Python file pipelines; Wong wants clarifying questions first but dislikes over-caution after that; safety-critical QMS writes need human sign-off only.  
+**Systems touched:** Oracle, in-house MES, in-house QMS.  
+**Follow-up:** Document Oracle export report names; choose first integration (likely email reminders or folder watch for exports).
+
 ### 2026-08-28 — Agent knowledge base initialized
 
 **Context:** Set up personal + domain docs and skills for supply chain / manufacturing automation.  
 **Decision:** Use layered model — rules (short), skills (workflows), reference MD (deep context), LEARNING-LOG (evolving memory).  
 **Why:** Cursor does not persist chat memory; explicit files give Cloud Agents and new chats consistent context.  
 **Gotchas:** `~/.cursor/skills/` is local-only; commit project `.cursor/` for Cloud Agents.  
-**Systems touched:** Cursor skills, rules, MCP.  
-**Follow-up:** Wong to fill ABOUT-WONG questionnaire and SYSTEMS-AND-APIS registry.
+**Systems touched:** Cursor skills, rules, MCP (planned).  
+**Follow-up:** Wong to fill remaining open items in SYSTEMS-AND-APIS.md.
 
 ---
 

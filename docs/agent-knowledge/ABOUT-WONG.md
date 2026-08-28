@@ -201,10 +201,21 @@ Agents should append dated entries there and suggest updates to domain docs if f
 
 ---
 
+## Standards & thresholds (confirmed)
+
+| Item | Value |
+|------|-------|
+| PPAP level | **Level 3** (AIAG) |
+| Cpk acceptance | **> 1.67** |
+| Drawing specs | **PDF** primary; **PLM export** sometimes |
+| Launch milestones | **Spreadsheet** |
+| Oracle exports | Format **unknown** — discover from sample file |
+
 ## Open items (to resolve in future chats)
 
 - [ ] Notification channel preference (email vs Teams vs in-house) when integrations are added
 - [ ] Dev/sandbox QMS environment vs prod-only for agent experiments
-- [ ] Oracle export formats and schedules (CSV, XML, report names)
+- [ ] Oracle: provide sample export so agent can map format
+- [ ] Launch spreadsheet: file path, sheet name, column names
 - [ ] Digital signature platform for feasibility routing
-- [ ] Thresholds for Cpk acceptance and fake-data detection rules
+- [ ] Safety-critical characteristic list (beyond default Cpk > 1.67 rule)

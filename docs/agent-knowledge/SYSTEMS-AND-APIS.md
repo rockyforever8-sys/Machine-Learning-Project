@@ -2,7 +2,7 @@
 
 > **Purpose:** Single source of truth for platforms Wong's agents connect to. **Never store secrets here** — only env var names and auth patterns.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-28 (Oracle TBD, PDF/PLM drawings, launch spreadsheet)
 
 Attach with `@SYSTEMS-AND-APIS.md` when building or debugging integrations.
 
@@ -35,13 +35,20 @@ Attach with `@SYSTEMS-AND-APIS.md` when building or debugging integrations.
 
 | Object | Source | Format | Notes |
 |--------|--------|--------|-------|
-| Purchase orders | Export / report | TBD | Map fields in future chat |
-| Material master | Export / report | TBD | Link to PPAP/FAI parts |
-| Supplier master | Export / report | TBD | |
+| Purchase orders | Export / report | **Unknown** — Wong to provide sample | Auto-detect CSV/XLS/XML on first drop |
+| Material master | Export / report | **Unknown** | Link to PPAP/FAI parts |
+| Supplier master | Export / report | **Unknown** | |
+
+**Discovery approach (Oracle format unknown):**
+
+1. Wong drops a sample export into a watch folder
+2. Python script sniffs delimiter, encoding, headers (`pandas.read_*` with auto-detect)
+3. Document mapped columns in this file after first successful parse
 
 **Rate limits / quirks:**
 
 - On-prem; design file-drop or scheduled export pipelines in Python first.
+- Format not yet confirmed — do not hard-code schema until sample is analyzed.
 
 ---
 
@@ -113,7 +120,23 @@ Attach with `@SYSTEMS-AND-APIS.md` when building or debugging integrations.
 | Field | Value |
 |-------|-------|
 | **Purpose** | Drawing specifications for FAI comparison |
-| **Agent access** | Read specs for automated compare (format TBD: PDF, CAD metadata, BOM) |
+| **Primary format** | **PDF** |
+| **Secondary format** | **PLM export** (when available — prefer for structured characteristics) |
+| **Agent access** | Read PDF + PLM exports; parse tolerances for FAI compare |
+| **Python stack** | `pdfplumber` / `PyMuPDF` for PDF; pandas for PLM CSV/XML exports |
+
+---
+
+## Product launch milestones
+
+| Field | Value |
+|-------|-------|
+| **System of record** | **Spreadsheet** (Excel or similar) |
+| **Purpose** | Product launch dates — link to feasibility sample timing and PPAP escalation |
+| **Agent access** | Read via scheduled export or shared file path |
+| **Integration** | Join launch date to QMS feasibility/PPAP status for "days to launch" risk scoring |
+
+**Still needed:** spreadsheet file path, sheet name, column names for part/program and launch date.
 
 ---
 
@@ -167,8 +190,9 @@ Config file (when ready): `.cursor/mcp.json`
 
 ## Open questions
 
-- [ ] Oracle export report names and cadence
+- [ ] Oracle export report names, cadence, and format (**provide sample file**)
+- [ ] Launch milestone spreadsheet path, sheet name, column mapping
 - [ ] QMS direct DB access vs export-only
 - [ ] Digital signature platform/product
-- [ ] Drawing/spec file formats and storage location
 - [ ] Supplier portal mechanics (if any)
+- [ ] PLM export format when used (CSV, XML, custom)

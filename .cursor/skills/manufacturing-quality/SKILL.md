@@ -18,10 +18,10 @@ description: |
 
 ## Wong's top 3 workflows
 
-### 1. PPAP automation
+### 1. PPAP automation (AIAG Level 3)
 
 1. Ingest PPAP from QMS inbox or file drop
-2. Checklist vs IATF PPAP elements — flag gaps
+2. Checklist vs **AIAG PPAP Level 3** (18 elements) — flag gaps
 3. Route to reviewer; recommend accept / reject / hold
 4. On reject: notify, set resubmit deadline, **loop**
 5. Scheduled reminders → tiered escalation
@@ -29,9 +29,9 @@ description: |
 
 ### 2. FAI automation
 
-1. Ingest **three sources**: supplier inspection, drawing specs, in-house measurements
+1. Ingest **three sources**: supplier inspection, **PDF drawing** (or PLM export), in-house measurements
 2. Align characteristics (units, datums, tolerances)
-3. **Auto-calculate Cpk** per characteristic (Python)
+3. **Auto-calculate Cpk** per characteristic (Python); flag if **Cpk ≤ 1.67**
 4. Statistical insights + **anomaly/fake-data detection**
 5. Flag lab deltas (supplier vs in-house)
 6. Propose measurement alignment and improvement actions

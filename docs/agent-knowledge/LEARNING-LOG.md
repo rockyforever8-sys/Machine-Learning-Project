@@ -23,6 +23,15 @@ Format: newest entries at the top.
 
 ## Entries
 
+### 2026-08-28 — PPAP L3, Cpk, and data source details
+
+**Context:** Follow-up to profile chat — Wong confirmed operational standards and data formats.  
+**Decision:** PPAP **Level 3** (AIAG 18-element checklist); FAI Cpk acceptance **> 1.67**; drawings **PDF** (+ PLM export sometimes); launch dates in **spreadsheet**; Oracle export format **unknown** — use sample-file discovery.  
+**Why:** Enables PPAP triage checklist and FAI capability rules in Python without re-asking.  
+**Gotchas:** PDF tolerance extraction may need OCR for scanned drawings; Oracle schema must not be hard-coded until sample analyzed.  
+**Systems touched:** QMS, document management, spreadsheet, Oracle (TBD).  
+**Follow-up:** Wong to drop sample Oracle export + launch spreadsheet column map.
+
 ### 2026-08-28 — Wong profile questionnaire completed
 
 **Context:** Profile chat — Wong answered systems, priorities, compliance, and working-style questions.  

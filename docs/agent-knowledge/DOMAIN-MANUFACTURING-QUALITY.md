@@ -2,7 +2,7 @@
 
 > Attach with `@DOMAIN-MANUFACTURING-QUALITY.md` for MES, QMS, PPAP, FAI, feasibility, and compliance workflows.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-28 (PPAP L3, Cpk threshold, drawing formats confirmed)
 
 ---
 
@@ -38,11 +38,67 @@
 
 ---
 
+## PPAP standard (Wong's environment)
+
+| Setting | Value |
+|---------|-------|
+| **PPAP level** | **Level 3** (AIAG PPAP manual) |
+| **Checklist basis** | AIAG PPAP Level 3 submission elements |
+
+### AIAG PPAP Level 3 — element checklist (automation target)
+
+Use this list for inbox triage and gap analysis:
+
+| # | Element | Auto-check approach |
+|---|---------|---------------------|
+| 1 | Design Records | File present + part number match |
+| 2 | Engineering Change Documents | ECN/ECR linked if applicable |
+| 3 | Customer Engineering Approval | Flag if customer requires |
+| 4 | Design FMEA | Document present, dated |
+| 5 | Process Flow Diagram | Present, matches part/process |
+| 6 | Process FMEA | Present, linked to control plan |
+| 7 | Control Plan | Present, matches PFMEA |
+| 8 | MSA Studies | Gage R&R / bias-linearity as required |
+| 9 | Dimensional Results | All drawing characteristics covered |
+| 10 | Material / Performance Test Results | Lab reports per spec |
+| 11 | Initial Process Studies | **Cpk studies** — see threshold below |
+| 12 | Qualified Laboratory Documentation | Accredited lab evidence |
+| 13 | Appearance Approval Report (AAR) | If appearance item |
+| 14 | Sample Production Parts | Quantity per customer |
+| 15 | Master Sample | If required by customer |
+| 16 | Checking Aids | Fixtures/gauges documented |
+| 17 | Customer-Specific Requirements | OEM addenda (IATF context) |
+| 18 | Part Submission Warrant (PSW) | Signed PSW form |
+
+---
+
+## FAI acceptance criteria
+
+| Metric | Threshold | Notes |
+|--------|-----------|-------|
+| **Cpk** | **> 1.67** | Default acceptance for capable process |
+| Safety-critical characteristics | Human sign-off | Even if Cpk passes — Wong policy |
+
+Agents flag characteristics with Cpk ≤ 1.67 for review; do not auto-accept without human confirmation.
+
+---
+
+## Drawing & spec sources (FAI compare)
+
+| Source | Format | Ingest approach |
+|--------|--------|-----------------|
+| **Primary** | **PDF** | Extract tolerances via structured PDF parse; OCR fallback for scanned drawings |
+| **Secondary** | **PLM export** | Prefer structured export (CSV/XML) when available — higher accuracy than PDF |
+
+Cross-reference PDF/PLM characteristics against supplier inspection sheet and in-house measurement data.
+
+---
+
 ## Priority workflow 1: PPAP automation
 
 ```
 Trigger: new PPAP lands in inbox (QMS or file drop)
-→ Triage: completeness vs checklist (IATF PPAP elements)
+→ Triage: completeness vs AIAG Level 3 checklist (18 elements above)
 → Route to reviewer (supplier quality)
 → Review outcome: Accept | Reject (with reasons) | Hold
 → If reject: notify supplier, set resubmit deadline
@@ -193,9 +249,18 @@ Trigger: OEE below target or Six Sigma project charter
 
 ---
 
-## Open questions
+## Resolved / open questions
 
-- [ ] PPAP level (1–5) distribution and element checklist version
-- [ ] FAI Cpk acceptance thresholds per characteristic type
-- [ ] Drawing extraction format (PDF OCR vs structured BOM)
+**Resolved:**
+
+- [x] PPAP level: **Level 3** per AIAG
+- [x] Cpk acceptance: **> 1.67**
+- [x] Drawings: **PDF** primary; **PLM export** sometimes
+- [x] Launch milestones: **spreadsheet** (see supply chain doc)
+
+**Still open:**
+
+- [ ] Oracle export format and report names (Wong unsure — discover from sample export)
 - [ ] Digital signature product for feasibility routing
+- [ ] Safety-critical characteristic list (separate from default Cpk rule)
+- [ ] Spreadsheet path/name for launch milestone file

@@ -55,7 +55,7 @@ Agents should support:
 | OTIF | On-time in-full delivery | Oracle (export) |
 | PPAP cycle time | Inbox → final approval | In-house QMS |
 | Feasibility cycle time | Request → sample approval | In-house QMS |
-| Launch risk days | Slip vs product launch milestone | Program schedule + QMS |
+| Launch risk days | Slip vs product launch milestone | **Spreadsheet** + QMS |
 | Supplier qualification | PPAP status + audit certs | QMS + supplier records |
 
 ---
@@ -111,7 +111,7 @@ Trigger: scheduled export
 | Supplier | ID, name, certs | Oracle + QMS |
 | PPAP | part, supplier, status, due | QMS |
 | Feasibility | part, 3-party status, launch link | QMS |
-| Launch milestone | product, date | Program / PLM (TBD) |
+| Launch milestone | product, part, launch date | **Spreadsheet** (Excel) |
 
 ---
 
@@ -125,8 +125,19 @@ Trigger: scheduled export
 
 ---
 
+## Product launch tracking
+
+| Attribute | Value |
+|-----------|-------|
+| **Source** | Spreadsheet (not PLM/Oracle for launch dates) |
+| **Use** | Feasibility sample timing, PPAP escalation when launch is at risk |
+| **Join key** | Part number or program ID (confirm column names) |
+
+Python: read spreadsheet with `pandas.read_excel`, join to QMS PPAP/feasibility status, compute `days_to_launch`.
+
 ## Open questions
 
-- [ ] Product launch schedule system of record
+- [x] Launch schedule: **spreadsheet**
+- [ ] Spreadsheet file path, sheet name, column mapping
 - [ ] Supplier scorecard existence and format
 - [ ] Contingency plan template Wong uses today

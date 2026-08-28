@@ -1,5 +1,18 @@
 # Machine Learning Project
 
+## Manufacturing Quality — PPAP Level 3 Inbox Triage
+
+Python CLI to triage supplier PPAP Level 3 submission folders against all 18 AIAG elements.
+
+```bash
+cd manufacturing-quality
+python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out
+```
+
+See [manufacturing-quality/README.md](./manufacturing-quality/README.md) and [DOMAIN-MANUFACTURING-QUALITY.md](./DOMAIN-MANUFACTURING-QUALITY.md).
+
+---
+
 ## AI Image Generator
 
 Turn text prompts into AI-generated images in your browser.

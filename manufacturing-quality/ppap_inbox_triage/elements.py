@@ -1,0 +1,225 @@
+from __future__ import annotations
+
+from .models import ElementPriority, PpapElement
+
+PPAP_LEVEL_3_ELEMENTS: tuple[PpapElement, ...] = (
+    PpapElement(
+        number=1,
+        name="Design Records",
+        aliases=("design record", "drawing", "cad", "specification", "dwg"),
+        filename_patterns=(
+            r"design[\s_-]?record",
+            r"\bdrawing\b",
+            r"\bdwg\b",
+            r"\bcad\b",
+            r"spec[\s_-]?sheet",
+            r"2d[\s_-]?print",
+        ),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=2,
+        name="Engineering Change Documents",
+        aliases=("ecn", "eco", "engineering change", "change notice"),
+        filename_patterns=(
+            r"\becn\b",
+            r"\beco\b",
+            r"engineering[\s_-]?change",
+            r"change[\s_-]?notice",
+            r"change[\s_-]?document",
+        ),
+        priority=ElementPriority.MEDIUM,
+    ),
+    PpapElement(
+        number=3,
+        name="Customer Engineering Approval",
+        aliases=("customer approval", "engineering approval", "deviation"),
+        filename_patterns=(
+            r"customer[\s_-]?approval",
+            r"engineering[\s_-]?approval",
+            r"\bdeviation\b",
+            r"customer[\s_-]?sign[\s_-]?off",
+        ),
+        priority=ElementPriority.MEDIUM,
+    ),
+    PpapElement(
+        number=4,
+        name="Design FMEA",
+        aliases=("dfmea", "design fmea"),
+        filename_patterns=(r"\bdfmea\b", r"design[\s_-]?fmea"),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=5,
+        name="Process Flow Diagram",
+        aliases=("pfd", "process flow", "routing"),
+        filename_patterns=(
+            r"\bpfd\b",
+            r"process[\s_-]?flow",
+            r"routing[\s_-]?flow",
+            r"flow[\s_-]?diagram",
+        ),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=6,
+        name="Process FMEA",
+        aliases=("pfmea", "process fmea"),
+        filename_patterns=(r"\bpfmea\b", r"process[\s_-]?fmea"),
+        priority=ElementPriority.CRITICAL,
+    ),
+    PpapElement(
+        number=7,
+        name="Control Plan",
+        aliases=("control plan", "pre-launch control plan"),
+        filename_patterns=(r"control[\s_-]?plan", r"pre[\s_-]?launch"),
+        priority=ElementPriority.CRITICAL,
+    ),
+    PpapElement(
+        number=8,
+        name="MSA Studies",
+        aliases=("msa", "gage r&r", "grr", "measurement system"),
+        filename_patterns=(
+            r"\bmsa\b",
+            r"gage[\s_-]?r",
+            r"\bgrr\b",
+            r"measurement[\s_-]?system",
+            r"bias[\s_-]?study",
+            r"linearity[\s_-]?study",
+        ),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=9,
+        name="Dimensional Results",
+        aliases=("dimensional", "layout", "inspection results", "balloon"),
+        filename_patterns=(
+            r"dimensional",
+            r"layout[\s_-]?inspect",
+            r"inspection[\s_-]?result",
+            r"balloon",
+            r"cmm[\s_-]?report",
+            r"first[\s_-]?article",
+            r"\bfai\b",
+        ),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=10,
+        name="Material / Performance Test Results",
+        aliases=("material test", "performance test", "mill cert", "coa"),
+        filename_patterns=(
+            r"material[\s_-]?test",
+            r"performance[\s_-]?test",
+            r"mill[\s_-]?cert",
+            r"\bcoa\b",
+            r"cert[\s_-]?of[\s_-]?analysis",
+            r"lab[\s_-]?report",
+            r"tensile",
+            r"hardness[\s_-]?test",
+        ),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=11,
+        name="Initial Process Studies",
+        aliases=("cpk", "ppk", "capability", "spc", "process study"),
+        filename_patterns=(
+            r"\bcpk\b",
+            r"\bppk\b",
+            r"capability[\s_-]?study",
+            r"process[\s_-]?study",
+            r"\bspc\b",
+            r"initial[\s_-]?process",
+        ),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=12,
+        name="Qualified Laboratory Documentation",
+        aliases=("lab accreditation", "iso 17025", "qualified lab"),
+        filename_patterns=(
+            r"lab[\s_-]?accredit",
+            r"iso[\s_-]?17025",
+            r"qualified[\s_-]?lab",
+            r"laboratory[\s_-]?scope",
+        ),
+        priority=ElementPriority.MEDIUM,
+    ),
+    PpapElement(
+        number=13,
+        name="Appearance Approval Report",
+        aliases=("aar", "appearance approval", "color master"),
+        filename_patterns=(
+            r"\baar\b",
+            r"appearance[\s_-]?approval",
+            r"color[\s_-]?master",
+            r"master[\s_-]?panel",
+        ),
+        priority=ElementPriority.MEDIUM,
+    ),
+    PpapElement(
+        number=14,
+        name="Sample Production Parts",
+        aliases=("sample parts", "production sample", "sample tag"),
+        filename_patterns=(
+            r"sample[\s_-]?part",
+            r"production[\s_-]?sample",
+            r"sample[\s_-]?tag",
+            r"sample[\s_-]?list",
+        ),
+        priority=ElementPriority.MEDIUM,
+        physical_artifact=True,
+    ),
+    PpapElement(
+        number=15,
+        name="Master Sample",
+        aliases=("master sample",),
+        filename_patterns=(r"master[\s_-]?sample",),
+        priority=ElementPriority.LOW,
+        physical_artifact=True,
+    ),
+    PpapElement(
+        number=16,
+        name="Checking Aids",
+        aliases=("checking aid", "fixture", "go no-go", "template"),
+        filename_patterns=(
+            r"checking[\s_-]?aid",
+            r"\bfixture\b",
+            r"go[\s_-]?no[\s_-]?go",
+            r"check[\s_-]?gauge",
+            r"inspection[\s_-]?template",
+        ),
+        priority=ElementPriority.LOW,
+        physical_artifact=True,
+    ),
+    PpapElement(
+        number=17,
+        name="Customer-Specific Requirements",
+        aliases=("csr", "customer specific", "oem requirement"),
+        filename_patterns=(
+            r"\bcsr\b",
+            r"customer[\s_-]?specific",
+            r"oem[\s_-]?requirement",
+            r"customer[\s_-]?checklist",
+        ),
+        priority=ElementPriority.HIGH,
+    ),
+    PpapElement(
+        number=18,
+        name="Part Submission Warrant",
+        aliases=("psw", "part submission warrant", "warrant"),
+        filename_patterns=(
+            r"\bpsw\b",
+            r"part[\s_-]?submission[\s_-]?warrant",
+            r"submission[\s_-]?warrant",
+        ),
+        priority=ElementPriority.CRITICAL,
+    ),
+)
+
+CRITICAL_ELEMENT_NUMBERS: frozenset[int] = frozenset(
+    element.number
+    for element in PPAP_LEVEL_3_ELEMENTS
+    if element.priority == ElementPriority.CRITICAL
+)

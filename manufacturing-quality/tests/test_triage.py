@@ -117,6 +117,19 @@ class PdfTextTests(unittest.TestCase):
             self.assertNotIn(7, report.summary["missing_critical_numbers"])
             self.assertNotIn(18, report.summary["missing_critical_numbers"])
 
+            element_six = next(item for item in report.elements if item.element.number == 6)
+            self.assertTrue(any(match.page_number is not None for match in element_six.matches))
+
+            with tempfile.TemporaryDirectory() as output_dir:
+                outputs = write_all_reports(report, Path(output_dir))
+                self.assertTrue(outputs["sqe_checklist"].exists())
+                checklist = outputs["sqe_checklist"].read_text(encoding="utf-8")
+                self.assertIn("Binder page index", checklist)
+                self.assertIn("Element verification", checklist)
+                markdown = outputs["markdown"].read_text(encoding="utf-8")
+                self.assertIn("Binder Page Index", markdown)
+                self.assertIn("| Pages |", markdown)
+
 
 class ScannerTests(unittest.TestCase):
     def test_scan_fixture_inbox(self) -> None:
@@ -210,6 +223,7 @@ class TriageTests(unittest.TestCase):
             self.assertTrue(outputs["json"].exists())
             self.assertTrue(outputs["csv"].exists())
             self.assertTrue(outputs["markdown"].exists())
+            self.assertTrue(outputs["sqe_checklist"].exists())
 
         payload = report_to_dict(report)
         self.assertEqual(len(payload["elements"]), 18)

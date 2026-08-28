@@ -101,6 +101,8 @@ def watch_inbox(
             print("Reports written:")
             for name, path in outputs.items():
                 print(f"  {name}: {path}")
+            if "sqe_checklist" in outputs:
+                print("SQE review: open sqe-checklist.md for binder page references")
             last_signature = signature
 
         if run_once:

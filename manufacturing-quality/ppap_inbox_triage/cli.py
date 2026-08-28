@@ -156,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
         print("Reports written:")
         for name, path in outputs.items():
             print(f"  {name}: {path}")
+        if "sqe_checklist" in outputs:
+            print("SQE review: open sqe-checklist.md for binder page references")
 
         if args.fail_on_blocked and report.status.value == "blocked":
             return 2

@@ -36,8 +36,8 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 3. **Layout detection** decides whether the submission is a **binder** (one/multi-section PDF), **discrete** (separate element files), or **mixed**.
 4. Classifier maps files to PPAP elements using filename patterns and PDF text (per-page for binders).
 5. Triage engine computes completeness, duplicates, and review queue using layout-specific rules.
-6. Report generator outputs JSON, CSV, and Markdown for the SQE inbox.
-7. Watch mode polls the inbox and re-runs triage when new files stabilize.
+6. Report generator outputs JSON, CSV, Markdown triage report, and `sqe-checklist.md` with binder page references.
+7. Watch mode (optional) polls the inbox and re-runs triage when new files stabilize.
 
 ## Submission Layouts
 

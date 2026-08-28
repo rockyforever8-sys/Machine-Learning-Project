@@ -16,8 +16,8 @@ python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out 
 2. **Detects layout** — binder vs discrete vs mixed submission
 3. **Classifies** each file to PPAP elements using filename patterns and PDF text (per-page for binders)
 4. **Triages** completeness, critical gaps, duplicates, and orphans
-5. **Writes** JSON, CSV, and Markdown reports for SQE review
-6. **Watches** the inbox and re-triages when new supplier files arrive
+5. **Writes** JSON, CSV, Markdown triage report, and `sqe-checklist.md` with binder page references
+6. **Watches** the inbox (optional `watch` command) and re-triages when new supplier files arrive
 
 ## Example output
 
@@ -28,7 +28,22 @@ Missing elements: 3, 14, 15
 Next action: Confirm physical artifact for element 14 (Sample Production Parts) — documentation not detected in inbox
 ```
 
-With `--pdf-text`, ambiguous PDFs can be classified from document content (e.g. a generically named file containing "Customer Engineering Approval").
+Outputs land in `triage-out/`:
+
+- `triage-report.md` — triage summary with binder page index
+- `triage-elements.csv` — spreadsheet with `binder_pages` column
+- `triage-report.json` — structured data
+- `sqe-checklist.md` — SQE review checklist with page references and sign-off fields
+
+### Watch mode (optional)
+
+Watcher is **not** used when you run `triage` once. Use `watch` to monitor the inbox for new supplier drops:
+
+```bash
+python3 -m ppap_inbox_triage watch <inbox_path> --output ./triage-out --pdf-text --layout auto --interval 2
+```
+
+Press `Ctrl+C` to stop. Watcher writes the same reports (including `sqe-checklist.md`) on each inbox change.
 
 ## CLI
 

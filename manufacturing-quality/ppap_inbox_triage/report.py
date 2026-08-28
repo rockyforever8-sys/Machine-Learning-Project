@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from .models import TriageReport, TriageStatus
+from .models import TriageReport, TriageStatus, match_evidence
 from .sqe_checklist import (
     build_binder_page_index,
     format_page_numbers,
@@ -50,7 +50,7 @@ def report_to_dict(report: TriageReport) -> dict:
                         "score": match.score,
                         "page_number": match.page_number,
                         "match_mode": match.match_mode,
-                        "evidence": list(match.evidence),
+                        "evidence": list(match_evidence(match)),
                     }
                     for match in triage.matches
                 ],

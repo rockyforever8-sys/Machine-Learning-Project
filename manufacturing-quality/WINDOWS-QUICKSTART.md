@@ -42,7 +42,7 @@ Update to the latest code:
 git pull
 ```
 
-Then restart the dashboard.
+Then restart the dashboard: **close the black terminal window fully**, then double-click `Start PPAP Dashboard.vbs` again. Streamlit can keep an old Python module in memory if you only refresh the browser.
 
 ## Git pull conflict fix
 

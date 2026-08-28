@@ -22,6 +22,7 @@ from .models import (
     SubmissionLayout,
     TriageReport,
     TriageStatus,
+    match_evidence,
 )
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
 from .scanner import scan_inbox
@@ -295,13 +296,14 @@ def triage_inbox(
             notes.append(f"Detected in PPAP binder pages: {pages}")
             evidence: list[str] = []
             for match in binder_matches:
-                for item in match.evidence:
+                for item in match_evidence(match):
                     if item not in evidence:
                         evidence.append(item)
             if evidence:
                 notes.append("AIAG content evidence: " + ", ".join(evidence[:8]))
-            if element.aiag_rule:
-                notes.append(element.aiag_rule)
+            aiag_rule = getattr(element, "aiag_rule", "")
+            if aiag_rule:
+                notes.append(aiag_rule)
             binder_element_count += 1
         elif content_matches:
             notes.append("Classified using PDF text content")

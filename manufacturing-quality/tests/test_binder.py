@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 
 from ppap_inbox_triage.binder import (
@@ -13,7 +14,7 @@ from ppap_inbox_triage.binder import (
     normalize_text,
     score_page,
 )
-from ppap_inbox_triage.models import InboxFile
+from ppap_inbox_triage.models import InboxFile, match_evidence
 from ppap_inbox_triage.pdf_text import pdf_text_available
 from ppap_inbox_triage.sqe_checklist import compact_page_range
 from ppap_inbox_triage.triage import triage_inbox
@@ -154,6 +155,10 @@ class BinderSemanticsTests(unittest.TestCase):
     def test_compact_page_range(self) -> None:
         self.assertEqual(compact_page_range([8, 9, 10, 21]), "8-10, 21")
         self.assertEqual(compact_page_range([]), "—")
+
+    def test_match_evidence_compatible_with_old_objects(self) -> None:
+        self.assertEqual(match_evidence(SimpleNamespace()), ())
+        self.assertEqual(match_evidence(SimpleNamespace(evidence=("pfmea", "rpn"))), ("pfmea", "rpn"))
 
 
 @unittest.skipUnless(pdf_text_available(), "pypdf is required for PDF extraction tests")

@@ -67,6 +67,19 @@ class ElementMatch:
     match_mode: str = "filename"
     evidence: tuple[str, ...] = ()
 
+    def __getattr__(self, name: str) -> object:
+        if name == "evidence":
+            return ()
+        raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
+
+
+def match_evidence(match: object) -> tuple[str, ...]:
+    """Read AIAG evidence from a match, including older ElementMatch objects."""
+    raw = getattr(match, "evidence", ())
+    if not raw:
+        return ()
+    return tuple(raw)
+
 
 @dataclass
 class ElementTriage:

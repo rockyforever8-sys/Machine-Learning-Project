@@ -16,6 +16,14 @@ from ppap_inbox_triage.report import format_console_summary, report_to_dict, wri
 from ppap_inbox_triage.sqe_checklist import SQE_VERIFICATION_CHECKS, build_binder_page_index, format_page_numbers
 from ppap_inbox_triage.triage import triage_inbox
 
+
+def _match_evidence(match: object) -> tuple[str, ...]:
+    """Compatible with older ElementMatch objects that lack an evidence field."""
+    raw = getattr(match, "evidence", ())
+    if not raw:
+        return ()
+    return tuple(raw)
+
 DEFAULT_INBOX = (
     r"C:\Users\kamyuen wong\OneDrive - JE\Desktop\BUDGET FY2627"
     r"\MIT Applied Agentic\PPAP Agentic\PPAP Inbox"
@@ -116,7 +124,7 @@ def _render_element_table(report) -> None:
         primary = triage.matches[0].file.relative_path if triage.matches else "—"
         evidence: list[str] = []
         for match in triage.matches:
-            for item in match.evidence:
+            for item in _match_evidence(match):
                 if item not in evidence:
                     evidence.append(item)
         rows.append(

@@ -47,9 +47,9 @@ Press `Ctrl+C` to stop. Watcher writes the same reports (including `sqe-checklis
 
 ## Streamlit dashboard (recommended for OneDrive inbox)
 
-**You do not need Git Bash.** Double-click `run-dashboard.bat` in File Explorer.
+**You do not need Git Bash.** Double-click **`Start PPAP Dashboard.vbs`** in File Explorer (most reliable), or `run-dashboard.bat`.
 
-See [WINDOWS-QUICKSTART.md](./WINDOWS-QUICKSTART.md) for step-by-step Windows instructions.
+See [WINDOWS-QUICKSTART.md](./WINDOWS-QUICKSTART.md) for troubleshooting. If launch fails, check `dashboard-launch.log` in this folder.
 
 ```bash
 # Optional: launch from terminal instead

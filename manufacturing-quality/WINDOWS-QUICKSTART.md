@@ -2,38 +2,36 @@
 
 ## Launch the dashboard
 
-1. Open **File Explorer**
-2. Go to your project folder:  
-   `...\Machine-Learning-Project\manufacturing-quality`
-3. **Double-click** `run-dashboard.bat`
-4. Wait for "Installing streamlit..." then your browser opens at `http://localhost:8501`
+### Recommended: double-click one of these
 
-You do **not** need Git Bash for the dashboard.
+| File | What it does |
+|------|----------------|
+| **`Start PPAP Dashboard.vbs`** | Opens a visible terminal + browser (most reliable) |
+| `run-dashboard.bat` | Same, auto-opens a terminal window |
 
-## If double-click fails
+Your browser should open at: **http://localhost:8501**
 
-Open **Command Prompt** (Win+R → type `cmd` → Enter), then:
+### If nothing happens
+
+1. Double-click **`Start PPAP Dashboard.vbs`** instead of the `.bat` file
+2. Read **`dashboard-launch.log`** in the same folder for error details
+3. Or open **Command Prompt** and run:
 
 ```cmd
 cd /d "C:\Users\kamyuen wong\OneDrive - JE\Desktop\BUDGET FY2627\MIT Applied Agentic\PPAP Agentic\Machine-Learning-Project\manufacturing-quality"
 
-py -m pip install --user streamlit pypdf
-py -m streamlit run dashboard\app.py
+"C:\Program Files\Python313\python.exe" -m pip install --user streamlit pypdf
+"C:\Program Files\Python313\python.exe" -m streamlit run dashboard\app.py
 ```
 
-If `py` is not found, use `python` instead of `py`.
+## Common fixes
 
-## Why Git Bash showed "No module named streamlit"
-
-Your `pip install` only reported `pypdf` — likely because:
-
-1. **Old code** — pull latest: `git pull` in the repo (or re-download ZIP)
-2. **Streamlit not installed** — the `.bat` file installs it explicitly with `--user`
+| Problem | Fix |
+|---------|-----|
+| Window flashes and closes | Use `Start PPAP Dashboard.vbs` |
+| `No module named streamlit` | Run the pip install line above |
+| No browser opens | Manually open http://localhost:8501 after the terminal says "Starting dashboard" |
 
 ## OneDrive inbox path
 
-In the dashboard sidebar, confirm:
-
-`C:\Users\kamyuen wong\OneDrive - JE\Desktop\BUDGET FY2627\MIT Applied Agentic\PPAP Agentic\PPAP Inbox`
-
-Then click **Run triage now**.
+In the dashboard sidebar, confirm your PPAP Inbox path, then click **Run triage now**.

@@ -38,6 +38,8 @@ def report_to_dict(report: TriageReport) -> dict:
                         "confidence": match.confidence.value,
                         "matched_pattern": match.matched_pattern,
                         "score": match.score,
+                        "page_number": match.page_number,
+                        "match_mode": match.match_mode,
                     }
                     for match in triage.matches
                 ],
@@ -102,6 +104,7 @@ def write_markdown_report(report: TriageReport, output_path: Path) -> Path:
         f"- **Status:** `{report.status.value}`",
         f"- **Completeness:** {report.summary['completeness_pct']}% "
         f"({report.summary['elements_present']}/18 elements)",
+        f"- **Submission layout:** `{report.summary.get('submission_layout', 'discrete')}`",
         "",
         "## Summary",
         "",
@@ -110,10 +113,12 @@ def write_markdown_report(report: TriageReport, output_path: Path) -> Path:
         f"- Duplicate mappings: {report.summary['elements_duplicate']}",
         f"- Low-confidence matches: {report.summary['elements_review']}",
         f"- Orphan files: {report.summary['orphan_files']}",
-        "",
-        "## Recommended Actions",
-        "",
     ]
+
+    binder_files = report.summary.get("binder_files", [])
+    if binder_files:
+        lines.append(f"- Binder files: {', '.join(f'`{path}`' for path in binder_files)}")
+    lines.extend(["", "## Recommended Actions", ""])
 
     for index, action in enumerate(report.actions, start=1):
         lines.append(f"{index}. {action}")
@@ -155,6 +160,7 @@ def format_console_summary(report: TriageReport) -> str:
 
     lines = [
         f"[{status_prefix}] PPAP Level 3 inbox triage — {report.summary['completeness_pct']}% complete",
+        f"Layout: {report.summary.get('submission_layout', 'discrete')} | "
         f"Files: {report.summary['files_scanned']} | Missing: {report.summary['elements_missing']} | "
         f"Duplicates: {report.summary['elements_duplicate']} | Orphans: {report.summary['orphan_files']}",
     ]

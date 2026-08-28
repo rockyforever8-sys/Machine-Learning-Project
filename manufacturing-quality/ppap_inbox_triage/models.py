@@ -26,6 +26,12 @@ class ElementPriority(str, Enum):
     LOW = "low"
 
 
+class SubmissionLayout(str, Enum):
+    DISCRETE = "discrete"
+    BINDER = "binder"
+    MIXED = "mixed"
+
+
 @dataclass(frozen=True)
 class PpapElement:
     number: int
@@ -52,6 +58,8 @@ class ElementMatch:
     confidence: MatchConfidence
     matched_pattern: str
     score: float
+    page_number: int | None = None
+    match_mode: str = "filename"
 
 
 @dataclass

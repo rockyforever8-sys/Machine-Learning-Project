@@ -7,7 +7,7 @@ Python CLI to triage supplier PPAP Level 3 submission folders against all 18 AIA
 ```bash
 cd manufacturing-quality
 pip install -r requirements.txt
-python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out --pdf-text
+python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out --pdf-text --layout auto
 
 # Watch for live supplier drops
 python3 -m ppap_inbox_triage watch /path/to/inbox --output ./triage-out --pdf-text

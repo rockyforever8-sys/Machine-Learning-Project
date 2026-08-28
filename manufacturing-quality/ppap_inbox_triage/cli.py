@@ -62,6 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Exit with code 1 when any PPAP elements are missing.",
     )
+    triage_parser.add_argument(
+        "--layout",
+        choices=("auto", "discrete", "binder"),
+        default="auto",
+        help="Submission layout strategy: auto-detect binder vs discrete files (default: auto).",
+    )
     _add_pdf_flags(triage_parser)
 
     watch_parser = subparsers.add_parser(
@@ -103,6 +109,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run a single triage pass and exit (useful for cron or CI).",
     )
     _add_pdf_flags(watch_parser)
+    watch_parser.add_argument(
+        "--layout",
+        choices=("auto", "discrete", "binder"),
+        default="auto",
+        help="Submission layout strategy: auto-detect binder vs discrete files (default: auto).",
+    )
 
     return parser
 
@@ -133,6 +145,7 @@ def main(argv: list[str] | None = None) -> int:
                 recursive=not args.no_recursive,
                 use_pdf_text=args.pdf_text,
                 pdf_max_pages=args.pdf_max_pages,
+                layout_mode=args.layout,
             )
         except (FileNotFoundError, NotADirectoryError, ValueError) as error:
             print(f"Error: {error}", file=sys.stderr)
@@ -173,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
                 recursive=not args.no_recursive,
                 use_pdf_text=args.pdf_text,
                 pdf_max_pages=args.pdf_max_pages,
+                layout_mode=args.layout,
                 run_once=args.once,
             )
         except KeyboardInterrupt:

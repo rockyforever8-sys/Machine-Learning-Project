@@ -13,7 +13,7 @@ from ppap_inbox_triage.scanner import scan_inbox
 from ppap_inbox_triage.triage import triage_inbox
 from ppap_inbox_triage.watcher import snapshot_inbox, watch_inbox
 
-from pdf_fixture import write_text_pdf
+from pdf_fixture import write_multipage_text_pdf, write_text_pdf
 
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "sample_inbox"
@@ -87,10 +87,35 @@ class PdfTextTests(unittest.TestCase):
             pdf_path = inbox / "supplier_submission_rev_a.pdf"
             write_text_pdf(pdf_path, "Customer Engineering Approval and sign-off")
             report = triage_inbox(inbox, use_pdf_text=True)
+            self.assertEqual(report.summary["submission_layout"], "discrete")
             self.assertNotIn(3, report.summary["missing_element_numbers"])
             element_three = next(item for item in report.elements if item.element.number == 3)
             self.assertEqual(element_three.status, "present")
-            self.assertIn("Classified using PDF text content", element_three.notes)
+
+    def test_binder_detects_multiple_elements_from_one_pdf(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir)
+            pdf_path = inbox / "PPAP Level 3_1616-5YY3235_RKG-25V392MK9WZQ-FC6_26-02-2021.pdf"
+            write_multipage_text_pdf(
+                pdf_path,
+                [
+                    "Design Records drawing specification",
+                    "Process FMEA PFMEA failure mode analysis",
+                    "Control Plan production pre-launch",
+                    "Part Submission Warrant PSW signed",
+                    "Dimensional layout inspection FAI results",
+                ],
+            )
+            report = triage_inbox(inbox, use_pdf_text=True)
+            self.assertEqual(report.summary["submission_layout"], "binder")
+            self.assertIn(1, [item.element.number for item in report.elements if item.status == "present"])
+            self.assertIn(6, [item.element.number for item in report.elements if item.status == "present"])
+            self.assertIn(7, [item.element.number for item in report.elements if item.status == "present"])
+            self.assertIn(18, [item.element.number for item in report.elements if item.status == "present"])
+            self.assertGreaterEqual(report.summary["elements_present"], 5)
+            self.assertNotIn(6, report.summary["missing_critical_numbers"])
+            self.assertNotIn(7, report.summary["missing_critical_numbers"])
+            self.assertNotIn(18, report.summary["missing_critical_numbers"])
 
 
 class ScannerTests(unittest.TestCase):
@@ -129,6 +154,7 @@ class TriageTests(unittest.TestCase):
     def test_sample_inbox_triage(self) -> None:
         report = triage_inbox(FIXTURES)
         self.assertEqual(report.submission_level, 3)
+        self.assertEqual(report.summary["submission_layout"], "discrete")
         self.assertGreater(report.summary["files_scanned"], 10)
         self.assertGreater(report.summary["elements_present"], 10)
         self.assertIn(3, report.summary["missing_element_numbers"])

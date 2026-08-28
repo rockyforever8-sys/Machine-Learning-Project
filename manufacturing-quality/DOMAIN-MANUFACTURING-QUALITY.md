@@ -33,10 +33,19 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 
 1. Supplier drops files into an inbox folder (flat or nested).
 2. Scanner inventories files and extracts lightweight metadata.
-3. Classifier maps files to PPAP elements using filename patterns and optional PDF text content.
-4. Triage engine computes completeness, duplicates, and review queue.
-5. Report generator outputs JSON, CSV, and Markdown for the SQE inbox.
-6. Watch mode polls the inbox and re-runs triage when new files stabilize.
+3. **Layout detection** decides whether the submission is a **binder** (one/multi-section PDF), **discrete** (separate element files), or **mixed**.
+4. Classifier maps files to PPAP elements using filename patterns and PDF text (per-page for binders).
+5. Triage engine computes completeness, duplicates, and review queue using layout-specific rules.
+6. Report generator outputs JSON, CSV, and Markdown for the SQE inbox.
+7. Watch mode polls the inbox and re-runs triage when new files stabilize.
+
+## Submission Layouts
+
+| Layout | When detected | Assignment rule |
+|--------|---------------|-----------------|
+| `binder` | Single PPAP PDF, or filename contains "PPAP Level 3", or one PDF covers 3+ elements | One file may satisfy multiple elements; page references recorded |
+| `discrete` | 8+ numbered/titled element files | One primary element per file; duplicates flagged across files |
+| `mixed` | Binder plus standalone element files | Binder rules for package PDFs; discrete rules for other files |
 
 ## Triage Outcomes
 
@@ -48,8 +57,8 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 ## CLI
 
 ```bash
-# One-shot triage with PDF text extraction
-python -m ppap_inbox_triage triage /path/to/inbox --output ./triage-out --pdf-text
+# One-shot triage with binder-aware PDF analysis
+python -m ppap_inbox_triage triage /path/to/inbox --output ./triage-out --pdf-text --layout auto
 
 # Watch inbox for live supplier drops
 python -m ppap_inbox_triage watch /path/to/inbox --output ./triage-out --pdf-text --interval 2

@@ -13,10 +13,11 @@ python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out 
 ## What it does
 
 1. **Scans** an inbox folder (recursive by default)
-2. **Classifies** each file to PPAP elements using filename patterns and PDF text content
-3. **Triages** completeness, critical gaps, duplicates, and orphans
-4. **Writes** JSON, CSV, and Markdown reports for SQE review
-5. **Watches** the inbox and re-triages when new supplier files arrive
+2. **Detects layout** — binder vs discrete vs mixed submission
+3. **Classifies** each file to PPAP elements using filename patterns and PDF text (per-page for binders)
+4. **Triages** completeness, critical gaps, duplicates, and orphans
+5. **Writes** JSON, CSV, and Markdown reports for SQE review
+6. **Watches** the inbox and re-triages when new supplier files arrive
 
 ## Example output
 
@@ -32,8 +33,8 @@ With `--pdf-text`, ambiguous PDFs can be classified from document content (e.g. 
 ## CLI
 
 ```bash
-# One-shot triage
-python3 -m ppap_inbox_triage triage <inbox_path> [--output DIR] [--pdf-text] [--no-recursive]
+# One-shot triage (auto-detects binder vs discrete)
+python3 -m ppap_inbox_triage triage <inbox_path> [--output DIR] [--pdf-text] [--layout auto|discrete|binder]
 
 # Live watch mode (polls inbox, waits for file stability, re-triages on change)
 python3 -m ppap_inbox_triage watch <inbox_path> [--output DIR] [--pdf-text] [--interval 2] [--stable-seconds 1] [--once]

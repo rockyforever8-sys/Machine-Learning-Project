@@ -68,6 +68,7 @@ def watch_inbox(
     recursive: bool = True,
     use_pdf_text: bool = False,
     pdf_max_pages: int = 5,
+    layout_mode: str = "auto",
     run_once: bool = False,
 ) -> None:
     last_signature: tuple[int, int, int] | None = None
@@ -91,6 +92,7 @@ def watch_inbox(
                 recursive=recursive,
                 use_pdf_text=use_pdf_text,
                 pdf_max_pages=pdf_max_pages,
+                layout_mode=layout_mode,
             )
             outputs = write_all_reports(report, output_dir)
             timestamp = report.scanned_at.replace("T", " ").split("+")[0]

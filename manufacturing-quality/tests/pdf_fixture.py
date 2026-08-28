@@ -6,8 +6,7 @@ from pypdf import PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 
-def write_text_pdf(path: Path, text: str) -> None:
-    writer = PdfWriter()
+def _add_text_page(writer: PdfWriter, text: str) -> None:
     page = writer.add_blank_page(width=612, height=792)
     escaped = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
     stream = DecodedStreamObject()
@@ -22,6 +21,20 @@ def write_text_pdf(path: Path, text: str) -> None:
     )
     resources = DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/F1"): font})})
     page[NameObject("/Resources")] = resources
+
+
+def write_text_pdf(path: Path, text: str) -> None:
+    writer = PdfWriter()
+    _add_text_page(writer, text)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("wb") as handle:
+        writer.write(handle)
+
+
+def write_multipage_text_pdf(path: Path, pages: list[str]) -> None:
+    writer = PdfWriter()
+    for page_text in pages:
+        _add_text_page(writer, page_text)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("wb") as handle:
         writer.write(handle)

@@ -26,6 +26,41 @@ cd /d "C:\Users\kamyuen wong\OneDrive - JE\Desktop\BUDGET FY2627\MIT Applied Age
 
 Then open **http://127.0.0.1:8501** in Chrome.
 
+## Missing launch_dashboard.py
+
+If the terminal says:
+
+```text
+can't open file '...\manufacturing-quality\launch_dashboard.py': [Errno 2] No such file or directory
+```
+
+this folder is incomplete (old copy or OneDrive did not sync). From Git Bash:
+
+```bash
+cd "/c/Users/kamyuen wong/OneDrive - JE/Desktop/BUDGET FY2627/MIT Applied Agentic/PPAP Agentic/Machine-Learning-Project"
+git checkout main
+git pull
+explorer manufacturing-quality
+```
+
+Confirm these files exist in `manufacturing-quality`:
+
+- `Start PPAP Dashboard.vbs`
+- `run-dashboard.bat`
+- `launch_dashboard.py`
+- `dashboard\app.py`
+
+Then double-click `Start PPAP Dashboard.vbs` again.
+
+Temporary workaround if `dashboard\app.py` is already there:
+
+```cmd
+cd /d "C:\Users\kamyuen wong\OneDrive - JE\Desktop\BUDGET FY2627\MIT Applied Agentic\PPAP Agentic\Machine-Learning-Project\manufacturing-quality"
+"C:\Program Files\Python313\python.exe" -m streamlit run dashboard\app.py --server.port 8501 --server.address 127.0.0.1
+```
+
+Then open **http://127.0.0.1:8501**.
+
 ## Application Control / pyarrow blocked
 
 If you see:

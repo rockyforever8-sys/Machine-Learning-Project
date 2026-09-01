@@ -4,7 +4,7 @@ if /i not "%~1"=="INTERNAL" (
   exit /b
 )
 
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 set "LOG=%~dp0dashboard-launch.log"
 
@@ -37,8 +37,33 @@ if errorlevel 1 (
 )
 
 echo.
-"%PY%" "%~dp0launch_dashboard.py"
-set "RC=%ERRORLEVEL%"
+
+if exist "%~dp0launch_dashboard.py" (
+  "%PY%" "%~dp0launch_dashboard.py"
+  set "RC=%ERRORLEVEL%"
+) else if exist "%~dp0dashboard\app.py" (
+  echo WARNING: launch_dashboard.py is missing.
+  echo Starting Streamlit directly instead.
+  echo If this folder is incomplete, run: git checkout main ^&^& git pull
+  echo.
+  "%PY%" -m streamlit run "%~dp0dashboard\app.py" --server.port 8501 --server.address 127.0.0.1 --server.headless true --browser.gatherUsageStats false
+  set "RC=%ERRORLEVEL%"
+) else (
+  echo ERROR: Dashboard files are missing from this folder:
+  echo   %CD%
+  echo.
+  echo Expected:
+  echo   launch_dashboard.py
+  echo   dashboard\app.py
+  echo.
+  echo Fix: open Git Bash in Machine-Learning-Project and run:
+  echo   git checkout main
+  echo   git pull
+  echo Then open manufacturing-quality and start the dashboard again.
+  echo.
+  pause
+  exit /b 1
+)
 
 if %RC% neq 0 (
   echo.

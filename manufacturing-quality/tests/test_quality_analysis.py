@@ -5,8 +5,10 @@ from unittest import mock
 
 from ppap_inbox_triage.models import InboxFile
 from ppap_inbox_triage.quality_analysis import (
+    QUALITY_PARSER_VERSION,
     _extract_capability_values,
     _extract_grr_values,
+    _is_spurious_capability_reading,
     _parse_pfmea_rows,
     analyze_inbox_quality,
 )
@@ -50,6 +52,45 @@ class QualityMetricExtractionTests(unittest.TestCase):
         labels = {label: value for label, value, _ in values}
         self.assertEqual(labels["Cpk"], 1.05)
         self.assertEqual(labels["Ppk"], 1.08)
+
+    def test_spurious_capability_guard_rejects_cpk_one_label(self) -> None:
+        self.assertTrue(_is_spurious_capability_reading("Cpk", 1.0, "Cpk 1"))
+        self.assertFalse(_is_spurious_capability_reading("Cpk", 2.23, "Cpk 2.23"))
+
+    def test_analyze_skips_cpk_one_row_label(self) -> None:
+        inbox_file = InboxFile(
+            path=__import__("pathlib").Path("SAMSUNG CL21Y475KBBVPJE.pdf"),
+            relative_path="SAMSUNG CL21Y475KBBVPJE.pdf",
+            name="SAMSUNG CL21Y475KBBVPJE.pdf",
+            suffix=".pdf",
+            size_bytes=1,
+        )
+
+        class FakePages:
+            @staticmethod
+            def extract_pdf_pages(path, max_pages=0):
+                return [
+                    (
+                        124,
+                        "Cpk 1 Cpk 2.23 Cpk 3.80 2.23 Cpk 3.80 Cpk Cpk 2.13 Cpk 3.29",
+                    ),
+                ]
+
+        with mock.patch(
+            "ppap_inbox_triage.quality_analysis.extract_pdf_pages",
+            FakePages.extract_pdf_pages,
+        ):
+            analysis = analyze_inbox_quality(
+                [inbox_file],
+                use_pdf_text=True,
+                binder_files={"SAMSUNG CL21Y475KBBVPJE.pdf"},
+            )
+
+        cpk_values = [item.value for item in analysis.capability_findings if item.metric == "Cpk"]
+        self.assertNotIn(1.0, cpk_values)
+        self.assertTrue(any(item.value == 2.23 for item in analysis.capability_findings))
+        self.assertFalse(any("Cpk 1.00" in flag or "Cpk 1.0" in flag for flag in analysis.flags))
+        self.assertEqual(analysis.to_summary()["parser_version"], QUALITY_PARSER_VERSION)
 
     def test_parse_pfmea_rows_and_countermeasures(self) -> None:
         text = (

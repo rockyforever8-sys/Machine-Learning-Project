@@ -134,6 +134,10 @@ def write_markdown_report(report: TriageReport, output_path: Path) -> Path:
     if binder_files:
         lines.append(f"- Binder files: {', '.join(f'`{path}`' for path in binder_files)}")
 
+    skill_title = report.summary.get("skill_title")
+    if skill_title:
+        lines.append(f"- Rules skill: {skill_title} (`{report.summary.get('skill_name', '')}`)")
+
     skipped_index = report.summary.get("index_pages_skipped") or []
     if skipped_index:
         lines.append(

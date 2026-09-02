@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ppap_inbox_triage.report import format_console_summary, report_to_dict, write_all_reports
+from ppap_inbox_triage.skill_loader import skill_element_records, skill_metadata
 from ppap_inbox_triage.sqe_checklist import SQE_VERIFICATION_CHECKS, build_binder_page_index, format_page_numbers
 from ppap_inbox_triage.triage import triage_inbox
 
@@ -109,6 +110,8 @@ def _render_metrics(report) -> None:
         unsafe_allow_html=True,
     )
     st.markdown(_status_badge(report.status.value), unsafe_allow_html=True)
+    skill_title = report.summary.get("skill_title") or "AIAG PPAP 4th Edition"
+    st.caption(f"Rules source: **{skill_title}** skill (`{report.summary.get('skill_name', '')}`)")
     skipped = report.summary.get("index_pages_skipped") or []
     if skipped:
         st.caption(
@@ -136,8 +139,11 @@ def _render_element_table(report) -> None:
                 "File": primary,
                 "Pages": format_page_numbers(triage.matches),
                 "AIAG evidence": ", ".join(evidence[:6]),
+                "AIAG rule": getattr(triage.element, "aiag_rule", "") or "",
                 "Notes": "; ".join(
-                    note for note in triage.notes if not note.startswith("AIAG PPAP")
+                    note
+                    for note in triage.notes
+                    if not note.startswith("AIAG PPAP")
                 ),
             }
         )
@@ -159,9 +165,10 @@ def _render_binder_index(report) -> None:
 
 
 def _render_sqe_checklist(report) -> None:
+    records = {int(item["number"]): item for item in skill_element_records()}
     for triage in report.elements:
         pages = format_page_numbers(triage.matches)
-
+        record = records.get(triage.element.number, {})
         checks = SQE_VERIFICATION_CHECKS.get(triage.element.number, ("Verify element content",))
         with st.expander(
             f"{triage.element.number}. {triage.element.name} — {triage.status.upper()} (pages: {pages})",
@@ -169,10 +176,52 @@ def _render_sqe_checklist(report) -> None:
         ):
             st.write(f"**Source file:** `{triage.matches[0].file.relative_path if triage.matches else '—'}`")
             st.write(f"**Priority:** {triage.element.priority.value}")
+            if record.get("good"):
+                st.write(f"**Skill — what good looks like:** {record['good']}")
+            if record.get("watch_outs"):
+                st.write(f"**Skill — watch-outs:** {record['watch_outs']}")
+            if getattr(triage.element, "aiag_rule", ""):
+                st.caption(triage.element.aiag_rule)
             if triage.notes:
-                st.caption("; ".join(triage.notes))
+                st.caption("; ".join(note for note in triage.notes if not note.startswith("AIAG PPAP")))
             for index, check in enumerate(checks):
                 st.checkbox(check, key=f"sqe_{triage.element.number}_{index}")
+
+
+def _render_skill_rules() -> None:
+    meta = skill_metadata()
+    st.subheader(meta["title"])
+    st.caption(f"Loaded from `{meta['source_path']}`")
+    st.write(
+        f"Default submission level **{meta['default_submission_level']}**. "
+        f"Critical elements: {', '.join(f'#{n}' for n in meta['critical_element_numbers'])}."
+    )
+    binder = meta.get("binder_rules") or {}
+    if binder:
+        st.markdown(
+            "- Skip table of contents: `{skip}`\n"
+            "- Title-only is not present: `{title}`\n"
+            "- PSW attached-document list is element 18 only: `{psw}`\n"
+            "- Scan every binder page: `{scan}`".format(
+                skip=binder.get("skip_table_of_contents"),
+                title=binder.get("title_only_is_not_present"),
+                psw=binder.get("psw_checklist_is_element_18_only"),
+                scan=binder.get("scan_every_page"),
+            )
+        )
+    rows = []
+    for record in skill_element_records():
+        rows.append(
+            {
+                "#": record["number"],
+                "Element": record["name"],
+                "Priority": record["priority"],
+                "What good looks like": record.get("good", ""),
+                "Watch-outs": record.get("watch_outs", ""),
+                "AIAG rule": record.get("aiag_rule", ""),
+            }
+        )
+    _render_simple_table(rows)
 
 
 def main() -> None:
@@ -183,7 +232,7 @@ def main() -> None:
     )
 
     st.title("PPAP Level 3 Inbox Triage")
-    st.caption("Local SQE dashboard for OneDrive supplier submission folders")
+    st.caption("Local SQE dashboard for OneDrive supplier submission folders — driven by the AIAG PPAP 4th Edition skill")
 
     with st.sidebar:
         st.header("Inbox settings")
@@ -197,9 +246,12 @@ def main() -> None:
         run_clicked = st.button("Run triage now", type="primary", use_container_width=True)
 
         st.divider()
+        meta = skill_metadata()
+        st.markdown(f"**Rules:** {meta['title']}")
+        st.caption(Path(meta["source_path"]).name if meta["source_path"] else "skill rules")
         st.markdown(
             "**Tip:** Point the inbox path at your OneDrive `PPAP Inbox` folder. "
-            "The dashboard writes reports to the output folder and displays binder page references."
+            "Classification follows the AIAG PPAP 4th Edition skill, not element titles alone."
         )
 
     inbox = Path(inbox_path)
@@ -246,8 +298,8 @@ def main() -> None:
 
     _render_metrics(report)
 
-    tab_overview, tab_elements, tab_binder, tab_sqe, tab_downloads = st.tabs(
-        ["Overview", "Elements", "Binder pages", "SQE checklist", "Downloads"]
+    tab_overview, tab_elements, tab_binder, tab_sqe, tab_skill, tab_downloads = st.tabs(
+        ["Overview", "Elements", "Binder pages", "SQE checklist", "AIAG skill", "Downloads"]
     )
 
     with tab_overview:
@@ -279,6 +331,9 @@ def main() -> None:
         st.text_area("Conditions / notes")
         _render_sqe_checklist(report)
         st.caption(f"Decision selected: {decision}")
+
+    with tab_skill:
+        _render_skill_rules()
 
     with tab_downloads:
         if outputs:

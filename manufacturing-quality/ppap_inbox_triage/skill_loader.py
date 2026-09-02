@@ -70,3 +70,22 @@ def sqe_checks_by_element() -> dict[int, tuple[str, ...]]:
         raw = record.get("sqe_checks") or ("Verify element content",)
         checks[number] = tuple(str(item) for item in raw)
     return checks
+
+
+def quality_thresholds() -> dict[str, Any]:
+    rules = load_skill_rules()
+    defaults = {
+        "msa_percent_grr_max": 10.0,
+        "cpk_min": 1.33,
+        "ppk_min": 1.33,
+        "pfmea_top_rpn_limit": 5,
+        "pfmea_action_rpn_min": 100,
+    }
+    payload = dict(rules.get("quality_thresholds") or {})
+    merged = {**defaults, **payload}
+    return merged
+
+
+def pfmea_countermeasure_playbook() -> dict[str, Any]:
+    rules = load_skill_rules()
+    return dict(rules.get("pfmea_countermeasure_playbook") or {})

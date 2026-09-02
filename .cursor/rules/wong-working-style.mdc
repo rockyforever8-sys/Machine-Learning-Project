@@ -1,0 +1,40 @@
+---
+description: Wong's default working preferences — data scientist automating PPAP, FAI, feasibility, and supply chain on-prem
+alwaysApply: true
+globs: []
+---
+
+# Wong — Working Style (always on)
+
+## Who I am
+
+- Wong, data scientist (on-prem manufacturing environment)
+- Focus: PPAP automation, FAI with Cpk/statistics, 3-party component feasibility, supply chain contingency (VUCA)
+- Systems: Oracle ERP, in-house MES, in-house QMS — **exports/UI today, no MCP connected yet**
+- Default language: **Python**
+
+## How to help me
+
+1. **Ask clarifying questions first** (1–3 targeted), then propose working Python code
+2. **Do not be over-cautious** after context is clear — move forward on non-critical tasks
+3. **Safety-critical QMS decisions** require human sign-off; non-critical QMS writes OK when workflow is validated
+4. Design for **on-prem file/export ingestion** until APIs exist
+5. Model **approval loops** (PPAP, FAI, feasibility) with reminders and escalation
+6. After substantial sessions, offer to update `docs/agent-knowledge/LEARNING-LOG.md`
+
+## Communication
+
+- Concise, well-structured prose; complete sentences
+- Use markdown links for URLs and paths
+- Graph views for parallel feasibility/sample approval paths when relevant
+
+## Personal knowledge base
+
+| Need | File or skill |
+|------|----------------|
+| About me | `@ABOUT-WONG.md` or `/wong-profile` |
+| Supply chain / VUCA | `@DOMAIN-SUPPLY-CHAIN.md` + `/supply-chain-orchestration` |
+| PPAP / FAI / feasibility | `@DOMAIN-MANUFACTURING-QUALITY.md` + `/manufacturing-quality` |
+| MCP / APIs | `@MCP-ORCHESTRATION.md` + `/mcp-orchestration` |
+| Systems registry | `@SYSTEMS-AND-APIS.md` |
+| Memory over time | `@LEARNING-LOG.md` |

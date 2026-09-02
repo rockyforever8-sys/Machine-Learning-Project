@@ -12,6 +12,7 @@ from ppap_inbox_triage.quality_analysis import (
     _parse_pfmea_rows,
     analyze_inbox_quality,
 )
+from ppap_inbox_triage.pfmea_xlsx import write_simple_xlsx
 
 
 class QualityMetricExtractionTests(unittest.TestCase):
@@ -138,6 +139,62 @@ class QualityMetricExtractionTests(unittest.TestCase):
         summary = analysis.to_summary()
         self.assertIn("pfmea_top_ap", summary)
         self.assertEqual(summary["pfmea_top_ap"][0]["action_priority"], analysis.pfmea_top_ap[0].action_priority)
+
+    def test_analyze_pfmea_from_xlsx_file(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            xlsx_path = Path(tmp) / "06_PFMEA_Line-2.xlsx"
+            write_simple_xlsx(
+                xlsx_path,
+                [
+                    [
+                        "Failure Mode",
+                        "Severity",
+                        "Occurrence",
+                        "Detection",
+                        "RPN",
+                        "AP",
+                        "Recommended Action",
+                    ],
+                    [
+                        "Leak at seal groove",
+                        "7",
+                        "3",
+                        "6",
+                        "126",
+                        "M",
+                        "Add 100 percent leak test per control plan",
+                    ],
+                    [
+                        "Porosity in weld cavity",
+                        "8",
+                        "4",
+                        "6",
+                        "192",
+                        "H",
+                        "Install venting and audit melt temperature profile",
+                    ],
+                ],
+            )
+            inbox_file = InboxFile(
+                path=xlsx_path,
+                relative_path="06_PFMEA_Line-2.xlsx",
+                name="06_PFMEA_Line-2.xlsx",
+                suffix=".xlsx",
+                size_bytes=xlsx_path.stat().st_size,
+            )
+            analysis = analyze_inbox_quality(
+                [inbox_file],
+                use_pdf_text=True,
+                binder_files=set(),
+            )
+
+        self.assertEqual(len(analysis.pfmea_top_ap), 2)
+        self.assertEqual(analysis.pfmea_top_ap[0].action_priority, "H")
+        self.assertEqual(analysis.pfmea_top_ap[0].rank, 1)
+        self.assertEqual(QUALITY_PARSER_VERSION, "2026-09-02e")
 
 
 class QualityInboxAnalysisTests(unittest.TestCase):

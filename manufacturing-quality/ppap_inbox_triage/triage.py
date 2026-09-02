@@ -33,6 +33,17 @@ from .scanner import discover_submission_packages, scan_inbox
 from .sqe_checklist import compact_page_range, format_page_numbers
 
 
+def _pfmea_pages_by_file(element_triages: list[ElementTriage]) -> dict[str, set[int | None]]:
+    """Map element-6 PFMEA assignments to binder pages for quality parsing."""
+    triage = next((item for item in element_triages if item.element.number == 6), None)
+    if not triage or triage.status == "missing":
+        return {}
+    pages_by_file: dict[str, set[int | None]] = {}
+    for match in triage.matches:
+        pages_by_file.setdefault(match.file.relative_path, set()).add(match.page_number)
+    return pages_by_file
+
+
 def _element_status(
     matches: list[ElementMatch],
     *,
@@ -422,14 +433,18 @@ def triage_inbox(
         inbox_files,
         use_pdf_text=use_pdf_text,
         binder_files=binder_files,
+        pfmea_pages_by_file=_pfmea_pages_by_file(element_triages),
     )
     summary["quality_analysis"] = quality.to_summary()
     summary["quality_flags_count"] = len(quality.flags)
-    if quality.flags:
+    if quality.quality_blocking:
         for action in reversed(quality.actions):
             actions.insert(0, action)
         if status == TriageStatus.READY_FOR_REVIEW:
             status = TriageStatus.NEEDS_CLARIFICATION
+    elif quality.flags or quality.actions:
+        for action in reversed(quality.actions):
+            actions.insert(0, action)
 
     return TriageReport(
         inbox_path=inbox_path.resolve(),

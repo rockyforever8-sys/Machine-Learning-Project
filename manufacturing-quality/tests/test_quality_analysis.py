@@ -102,6 +102,58 @@ class QualityMetricExtractionTests(unittest.TestCase):
         self.assertEqual(rows[0].rpn, 192)
         self.assertTrue(any("vent" in item.lower() or "melt" in item.lower() for item in rows[0].countermeasures))
 
+    def test_parse_pfmea_table_lines_without_keyword(self) -> None:
+        text = (
+            "Failure mode / effect                    S  O  D  RPN\n"
+            "Porosity in weld cavity visual escape      8  4  6  192\n"
+            "Dimensional out of tolerance on bore        7  3  5  105\n"
+            "Surface scratch from handling               6  4  4   96\n"
+        )
+        rows = _parse_pfmea_rows(text, source_file="binder.pdf", page_number=42)
+        rpns = sorted((row.rpn for row in rows), reverse=True)
+        self.assertEqual(rpns[:3], [192, 105, 96])
+        self.assertTrue(rows[0].countermeasures)
+
+    def test_analyze_pfmea_from_element_six_pages_without_keyword(self) -> None:
+        inbox_file = InboxFile(
+            path=__import__("pathlib").Path("PPAP_package.pdf"),
+            relative_path="PPAP_package.pdf",
+            name="PPAP_package.pdf",
+            suffix=".pdf",
+            size_bytes=1,
+        )
+
+        class FakePages:
+            @staticmethod
+            def extract_pdf_pages(path, max_pages=0):
+                return [
+                    (41, "Cover sheet"),
+                    (
+                        42,
+                        "Control plan excerpt\n"
+                        "Weld porosity at joint line              8 4 6 192\n"
+                        "Leak at seal groove                      7 3 6 126\n",
+                    ),
+                ]
+
+        with mock.patch(
+            "ppap_inbox_triage.quality_analysis.extract_pdf_pages",
+            FakePages.extract_pdf_pages,
+        ):
+            analysis = analyze_inbox_quality(
+                [inbox_file],
+                use_pdf_text=True,
+                binder_files={"PPAP_package.pdf"},
+                pfmea_pages_by_file={"PPAP_package.pdf": {42}},
+            )
+
+        self.assertEqual(len(analysis.pfmea_top_rpn), 2)
+        self.assertEqual(analysis.pfmea_top_rpn[0].rpn, 192)
+        self.assertEqual(analysis.pfmea_top_rpn[0].rank, 1)
+        self.assertGreaterEqual(len(analysis.pfmea_top_rpn[0].countermeasures), 1)
+        self.assertTrue(analysis.pfmea_benchmark_notes)
+        self.assertTrue(analysis.pfmea_default_practices)
+
 
 class QualityInboxAnalysisTests(unittest.TestCase):
     def test_analyze_flags_grr_cpk_and_pfmea(self) -> None:

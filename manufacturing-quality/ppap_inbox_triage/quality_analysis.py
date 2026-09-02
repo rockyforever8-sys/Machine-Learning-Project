@@ -8,8 +8,8 @@ from .models import InboxFile
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
 from .skill_loader import pfmea_countermeasure_playbook, quality_thresholds
 
-# Bump when capability/MSA parsing rules change — shown in the dashboard sidebar.
-QUALITY_PARSER_VERSION = "2026-09-02b"
+# Bump when capability/MSA/PFMEA parsing rules change — shown in the dashboard sidebar.
+QUALITY_PARSER_VERSION = "2026-09-02c"
 
 
 @dataclass(frozen=True)
@@ -34,6 +34,7 @@ class PfmeaRow:
     source_file: str
     page_number: int | None = None
     countermeasures: tuple[str, ...] = ()
+    rank: int = 0
 
 
 @dataclass
@@ -41,6 +42,10 @@ class QualityAnalysis:
     msa_findings: list[MetricFinding] = field(default_factory=list)
     capability_findings: list[MetricFinding] = field(default_factory=list)
     pfmea_top_rpn: list[PfmeaRow] = field(default_factory=list)
+    pfmea_benchmark_notes: list[str] = field(default_factory=list)
+    pfmea_reduction_order: str = "Severity → Occurrence → Detection"
+    pfmea_default_practices: list[str] = field(default_factory=list)
+    quality_blocking: bool = False
     flags: list[str] = field(default_factory=list)
     actions: list[str] = field(default_factory=list)
 
@@ -75,6 +80,7 @@ class QualityAnalysis:
             ],
             "pfmea_top_rpn": [
                 {
+                    "rank": row.rank,
                     "failure_mode": row.failure_mode,
                     "severity": row.severity,
                     "occurrence": row.occurrence,
@@ -86,6 +92,10 @@ class QualityAnalysis:
                 }
                 for row in self.pfmea_top_rpn
             ],
+            "pfmea_benchmark_notes": list(self.pfmea_benchmark_notes),
+            "pfmea_reduction_order": self.pfmea_reduction_order,
+            "pfmea_default_practices": list(self.pfmea_default_practices),
+            "quality_blocking": self.quality_blocking,
             "flags": list(self.flags),
         }
 
@@ -127,15 +137,111 @@ RPN_ROW_PATTERN = re.compile(
     re.I,
 )
 
+LINE_SOD_RPN_PATTERN = re.compile(
+    r"^(?P<mode>.{10,110}?)\s+(?P<sev>\d{1,2})\s+(?P<occ>\d{1,2})\s+(?P<det>\d{1,2})\s+(?P<rpn>\d{2,4})\s*$",
+    re.M,
+)
+
+SOD_RPN_TUPLE_PATTERN = re.compile(
+    r"\b(?P<sev>\d{1,2})\s+(?P<occ>\d{1,2})\s+(?P<det>\d{1,2})\s+(?P<rpn>\d{2,4})\b",
+)
+
 RPN_INLINE_PATTERN = re.compile(
     r"rpn\s*[:=]?\s*(?P<rpn>\d{2,4})",
     re.I,
 )
 
+PFMEA_FILENAME_TOKENS: tuple[str, ...] = (
+    "pfmea",
+    "dfmea",
+    "fmea",
+    "过程fmea",
+    "過程fmea",
+    "过程 fmea",
+)
+
+
+def _is_pfmea_filename(filename: str) -> bool:
+    lowered = filename.lower()
+    return any(token in lowered for token in PFMEA_FILENAME_TOKENS)
+
 
 def _looks_like_pfmea(text: str) -> bool:
     lowered = text.lower()
-    return "pfmea" in lowered or "process fmea" in lowered or "过程fmea" in lowered or "过程 fmea" in lowered
+    return (
+        "pfmea" in lowered
+        or "process fmea" in lowered
+        or "过程fmea" in lowered
+        or "过程 fmea" in lowered
+        or "失效模式" in text
+        or "fmea" in lowered
+    )
+
+
+def _looks_like_rpn_table(text: str) -> bool:
+    if RPN_INLINE_PATTERN.search(text):
+        return True
+    if len(SOD_RPN_TUPLE_PATTERN.findall(text)) >= 1:
+        return True
+    if re.search(r"\b(?:sev|severity|严重度)\b", text, re.I) and re.search(
+        r"\b(?:occ|occurrence|频度)\b", text, re.I
+    ):
+        return True
+    return False
+
+
+def _pfmea_scan_needed(
+    text: str,
+    inbox_file: InboxFile,
+    page_number: int | None,
+    pfmea_pages_by_file: dict[str, set[int | None]],
+) -> bool:
+    if _looks_like_pfmea(text) or _looks_like_rpn_table(text):
+        return True
+    if _is_pfmea_filename(inbox_file.name):
+        return True
+    pages = pfmea_pages_by_file.get(inbox_file.relative_path)
+    if not pages:
+        return False
+    if None in pages:
+        return True
+    return page_number in pages
+
+
+def _valid_sod_rpn(sev: int, occ: int, det: int, rpn: int) -> bool:
+    if not (1 <= sev <= 10 and 1 <= occ <= 10 and 1 <= det <= 10):
+        return False
+    if rpn < 40:
+        return False
+    if abs(rpn - sev * occ * det) > max(15, rpn * 0.25):
+        return False
+    return True
+
+
+def _make_pfmea_row(
+    *,
+    failure_mode: str,
+    severity: int,
+    occurrence: int,
+    detection: int,
+    rpn: int,
+    source_file: str,
+    page_number: int | None,
+    playbook: dict[str, Any],
+) -> PfmeaRow:
+    mode = re.sub(r"\s+", " ", failure_mode).strip(" -:;|")
+    if len(mode) < 8:
+        mode = f"PFMEA failure mode (RPN {rpn})"
+    return PfmeaRow(
+        failure_mode=mode[:120],
+        severity=severity,
+        occurrence=occurrence,
+        detection=detection,
+        rpn=rpn,
+        source_file=source_file,
+        page_number=page_number,
+        countermeasures=_countermeasures_for_failure_mode(mode, playbook),
+    )
 
 
 def _is_spurious_capability_reading(label: str, value: float, context: str) -> bool:
@@ -192,38 +298,70 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
     playbook = pfmea_countermeasure_playbook()
     seen: set[tuple[str, int]] = set()
 
-    for match in RPN_ROW_PATTERN.finditer(text):
-        sev = int(match.group("sev"))
-        occ = int(match.group("occ"))
-        det = int(match.group("det"))
-        rpn = int(match.group("rpn"))
-        if not (1 <= sev <= 10 and 1 <= occ <= 10 and 1 <= det <= 10):
-            continue
-        if rpn < 40:
-            continue
-        if abs(rpn - sev * occ * det) > max(15, rpn * 0.25):
-            continue
-        mode = re.sub(r"\s+", " ", match.group("mode")).strip(" -:;|")
-        if len(mode) < 8:
-            continue
-        key = (mode.lower()[:60], rpn)
+    def add_row(
+        *,
+        failure_mode: str,
+        severity: int,
+        occurrence: int,
+        detection: int,
+        rpn: int,
+    ) -> None:
+        if severity or occurrence or detection:
+            if not _valid_sod_rpn(severity, occurrence, detection, rpn):
+                return
+        elif rpn < 40:
+            return
+        key = (failure_mode.lower()[:60], rpn)
         if key in seen:
-            continue
+            return
         seen.add(key)
         rows.append(
-            PfmeaRow(
-                failure_mode=mode[:120],
-                severity=sev,
-                occurrence=occ,
-                detection=det,
+            _make_pfmea_row(
+                failure_mode=failure_mode,
+                severity=severity,
+                occurrence=occurrence,
+                detection=detection,
                 rpn=rpn,
                 source_file=source_file,
                 page_number=page_number,
-                countermeasures=_countermeasures_for_failure_mode(mode, playbook),
+                playbook=playbook,
             )
         )
 
-    # Fallback: lines with explicit RPN labels near PFMEA context
+    for match in RPN_ROW_PATTERN.finditer(text):
+        add_row(
+            failure_mode=match.group("mode"),
+            severity=int(match.group("sev")),
+            occurrence=int(match.group("occ")),
+            detection=int(match.group("det")),
+            rpn=int(match.group("rpn")),
+        )
+
+    for match in LINE_SOD_RPN_PATTERN.finditer(text):
+        add_row(
+            failure_mode=match.group("mode"),
+            severity=int(match.group("sev")),
+            occurrence=int(match.group("occ")),
+            detection=int(match.group("det")),
+            rpn=int(match.group("rpn")),
+        )
+
+    for line in text.splitlines():
+        line = line.strip()
+        if len(line) < 12:
+            continue
+        tuple_match = SOD_RPN_TUPLE_PATTERN.search(line)
+        if not tuple_match:
+            continue
+        mode = line[: tuple_match.start()].strip(" -:;|")
+        add_row(
+            failure_mode=mode,
+            severity=int(tuple_match.group("sev")),
+            occurrence=int(tuple_match.group("occ")),
+            detection=int(tuple_match.group("det")),
+            rpn=int(tuple_match.group("rpn")),
+        )
+
     if not rows and RPN_INLINE_PATTERN.search(text):
         for line in text.splitlines():
             inline = RPN_INLINE_PATTERN.search(line)
@@ -233,20 +371,14 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
             if rpn < 40:
                 continue
             mode = re.sub(r"\s+", " ", line[: inline.start()]).strip(" -:;|")
-            if len(mode) < 8:
-                mode = f"PFMEA item (RPN {rpn})"
-            rows.append(
-                PfmeaRow(
-                    failure_mode=mode[:120],
-                    severity=0,
-                    occurrence=0,
-                    detection=0,
-                    rpn=rpn,
-                    source_file=source_file,
-                    page_number=page_number,
-                    countermeasures=_countermeasures_for_failure_mode(mode, playbook),
-                )
+            add_row(
+                failure_mode=mode,
+                severity=0,
+                occurrence=0,
+                detection=0,
+                rpn=rpn,
             )
+
     return rows
 
 
@@ -288,14 +420,29 @@ def analyze_inbox_quality(
     *,
     use_pdf_text: bool,
     binder_files: set[str],
+    pfmea_pages_by_file: dict[str, set[int | None]] | None = None,
 ) -> QualityAnalysis:
     thresholds = quality_thresholds()
+    playbook = pfmea_countermeasure_playbook()
     grr_max = float(thresholds.get("msa_percent_grr_max", 10.0))
     cpk_min = float(thresholds.get("cpk_min", 1.33))
     ppk_min = float(thresholds.get("ppk_min", 1.33))
     top_rpn_limit = int(thresholds.get("pfmea_top_rpn_limit", 5))
+    pfmea_pages = pfmea_pages_by_file or {}
 
     analysis = QualityAnalysis()
+    analysis.pfmea_benchmark_notes = [
+        str(item) for item in thresholds.get("references", []) if item
+    ]
+    analysis.pfmea_reduction_order = str(
+        thresholds.get(
+            "pfmea_reduction_order",
+            "Severity → Occurrence → Detection (AIAG FMEA priority)",
+        )
+    )
+    analysis.pfmea_default_practices = [
+        str(item) for item in playbook.get("default_countermeasures", []) if item
+    ]
     pfmea_rows: list[PfmeaRow] = []
 
     for inbox_file in inbox_files:
@@ -327,6 +474,7 @@ def analyze_inbox_quality(
                         f"{f', page {page_number}' if page_number else ''})"
                     )
                     analysis.flags.append(flag)
+                    analysis.quality_blocking = True
                     analysis.actions.append(
                         "MSA unacceptable: %GRR above 10% — repeat Gage R&R after gauge/fixture "
                         "calibration, operator training, and measurement method review"
@@ -355,13 +503,14 @@ def analyze_inbox_quality(
                         f"{f', page {page_number}' if page_number else ''})"
                     )
                     analysis.flags.append(flag)
+                    analysis.quality_blocking = True
                     analysis.actions.append(
                         f"Process capability gap: {label} {value:.2f} < {minimum:.2f} — "
                         "run special-cause analysis, tighten controls on special characteristics, "
                         "and re-run capability after corrective action"
                     )
 
-            if _looks_like_pfmea(text):
+            if _pfmea_scan_needed(text, inbox_file, page_number, pfmea_pages):
                 pfmea_rows.extend(
                     _parse_pfmea_rows(
                         text,
@@ -371,16 +520,35 @@ def analyze_inbox_quality(
                 )
 
     pfmea_rows.sort(key=lambda row: (-row.rpn, row.failure_mode))
-    analysis.pfmea_top_rpn = pfmea_rows[:top_rpn_limit]
+    analysis.pfmea_top_rpn = []
+    for index, row in enumerate(pfmea_rows[:top_rpn_limit], start=1):
+        analysis.pfmea_top_rpn.append(
+            PfmeaRow(
+                failure_mode=row.failure_mode,
+                severity=row.severity,
+                occurrence=row.occurrence,
+                detection=row.detection,
+                rpn=row.rpn,
+                source_file=row.source_file,
+                page_number=row.page_number,
+                countermeasures=row.countermeasures,
+                rank=index,
+            )
+        )
 
-    for index, row in enumerate(analysis.pfmea_top_rpn, start=1):
+    if pfmea_pages and not analysis.pfmea_top_rpn:
+        pass  # Dashboard shows default PFMEA best practices when rows are not parseable.
+
+    for row in analysis.pfmea_top_rpn:
         analysis.flags.append(
-            f"PFMEA top RPN #{index}: {row.failure_mode} (RPN {row.rpn}, "
+            f"PFMEA top RPN #{row.rank}: {row.failure_mode} (RPN {row.rpn}, "
             f"S={row.severity} O={row.occurrence} D={row.detection})"
         )
         if row.rpn >= int(thresholds.get("pfmea_action_rpn_min", 100)):
+            analysis.quality_blocking = True
             analysis.actions.append(
-                f"PFMEA action required for RPN {row.rpn} — {row.failure_mode}: "
+                f"PFMEA RPN {row.rpn} (#{row.rank}) — reduce per AIAG priority "
+                f"({analysis.pfmea_reduction_order}): "
                 + "; ".join(row.countermeasures[:3])
             )
 

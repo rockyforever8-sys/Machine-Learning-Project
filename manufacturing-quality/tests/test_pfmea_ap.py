@@ -9,7 +9,9 @@ from ppap_inbox_triage.pfmea_ap import (
     pfmea_sort_key,
     split_table_actions,
 )
-from ppap_inbox_triage.quality_analysis import PfmeaRow, _parse_pfmea_rows
+from ppap_inbox_triage.pfmea_xlsx import parse_pfmea_xlsx_rows
+from ppap_inbox_triage.quality_analysis import PfmeaRow, _make_pfmea_row, _parse_pfmea_rows
+from ppap_inbox_triage.skill_loader import pfmea_countermeasure_playbook
 
 
 class PfmeaActionPriorityTests(unittest.TestCase):
@@ -71,6 +73,84 @@ class PfmeaTableActionTests(unittest.TestCase):
         text = "Dimensional out of tolerance on bore        7  3  5  105"
         rows = _parse_pfmea_rows(text, source_file="binder.pdf", page_number=6)
         self.assertEqual(rows, [])
+
+    def test_split_table_actions_accepts_action_column_text(self) -> None:
+        self.assertEqual(
+            split_table_actions(
+                "增加排气孔并监控熔体温度",
+                from_action_column=True,
+            ),
+            ("增加排气孔并监控熔体温度",),
+        )
+
+    def test_parse_row_with_explicit_ap_column(self) -> None:
+        text = (
+            "Porosity in weld cavity visual escape      8  4  6  192  H  "
+            "Install venting and audit melt temperature profile"
+        )
+        rows = _parse_pfmea_rows(text, source_file="binder.pdf", page_number=6)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].action_priority, "H")
+
+    def test_parse_stacked_vertical_pfmea_cells(self) -> None:
+        text = (
+            "Porosity in weld cavity visual escape\n"
+            "8\n4\n6\n192\nH\n"
+            "Install venting and audit melt temperature profile"
+        )
+        rows = _parse_pfmea_rows(text, source_file="binder.pdf", page_number=6)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].action_priority, "H")
+        self.assertTrue(rows[0].table_actions)
+
+    def test_parse_pfmea_xlsx_with_ap_column(self) -> None:
+        playbook = pfmea_countermeasure_playbook()
+
+        def make_row(**kwargs: object) -> PfmeaRow | None:
+            return _make_pfmea_row(
+                failure_mode=str(kwargs.get("failure_mode", "")),
+                severity=int(kwargs["severity"]),  # type: ignore[arg-type]
+                occurrence=int(kwargs["occurrence"]),  # type: ignore[arg-type]
+                detection=int(kwargs["detection"]),  # type: ignore[arg-type]
+                rpn=int(kwargs["rpn"]),  # type: ignore[arg-type]
+                table_actions=split_table_actions(
+                    str(kwargs.get("table_action_text", "")),
+                    from_action_column=bool(kwargs.get("from_action_column")),
+                ),
+                source_file="06_PFMEA.xlsx",
+                page_number=None,
+                playbook=playbook,
+                explicit_ap=str(kwargs.get("explicit_ap", "")),
+            )
+
+        table = [
+            [
+                "Failure Mode",
+                "S",
+                "O",
+                "D",
+                "RPN",
+                "AP",
+                "Recommended Action",
+            ],
+            [
+                "Porosity in weld cavity",
+                "8",
+                "4",
+                "6",
+                "192",
+                "H",
+                "Install venting and audit melt temperature profile",
+            ],
+        ]
+        rows = parse_pfmea_xlsx_rows(
+            table,
+            source_file="06_PFMEA.xlsx",
+            make_row=make_row,
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].action_priority, "H")
+        self.assertTrue(rows[0].table_actions)
 
     def test_compare_notes_flag_gaps(self) -> None:
         notes = compare_table_vs_benchmark(

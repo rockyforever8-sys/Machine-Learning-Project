@@ -68,12 +68,13 @@ def pfmea_action_priority(severity: int, occurrence: int, detection: int) -> str
     return "L"
 
 
-def split_table_actions(text: str) -> tuple[str, ...]:
+def split_table_actions(text: str, *, from_action_column: bool = False) -> tuple[str, ...]:
     """Split supplier PFMEA recommended-action text from a table row."""
     cleaned = re.sub(r"\s+", " ", text).strip(" -:;|")
-    if len(cleaned) < 12:
+    min_len = 8 if from_action_column else 12
+    if len(cleaned) < min_len:
         return ()
-    if not _looks_like_action_text(cleaned):
+    if not from_action_column and not _looks_like_action_text(cleaned):
         return ()
     parts = re.split(r"\s*;\s*|\s*\|\s*", cleaned)
     actions = [part.strip() for part in parts if len(part.strip()) >= 12]

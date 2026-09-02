@@ -7,16 +7,18 @@ from typing import Any
 from .models import InboxFile
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
 from .pfmea_ap import (
+    AP_RANK,
     benchmark_actions_for_failure_mode,
     compare_table_vs_benchmark,
     pfmea_action_priority,
     pfmea_sort_key,
     split_table_actions,
 )
+from .pfmea_xlsx import parse_pfmea_xlsx_rows, read_xlsx_rows
 from .skill_loader import pfmea_countermeasure_playbook, quality_thresholds
 
 # Bump when capability/MSA/PFMEA parsing rules change — shown in the dashboard sidebar.
-QUALITY_PARSER_VERSION = "2026-09-02d"
+QUALITY_PARSER_VERSION = "2026-09-02e"
 
 
 @dataclass(frozen=True)
@@ -184,6 +186,13 @@ SOD_RPN_TUPLE_PATTERN = re.compile(
     r"\b(?P<sev>\d{1,2})\s+(?P<occ>\d{1,2})\s+(?P<det>\d{1,2})\s+(?P<rpn>\d{2,4})\b",
 )
 
+SOD_RPN_AP_INLINE_PATTERN = re.compile(
+    r"\b(?P<sev>\d{1,2})\s+(?P<occ>\d{1,2})\s+(?P<det>\d{1,2})\s+(?P<rpn>\d{2,4})\s+(?P<ap>[HML])\b",
+    re.I,
+)
+
+EXPLICIT_AP_PATTERN = re.compile(r"\b(?:ap|action\s+priority|行动优先级)\s*[:：]?\s*([HML])\b", re.I)
+
 RPN_INLINE_PATTERN = re.compile(
     r"rpn\s*[:=]?\s*(?P<rpn>\d{2,4})",
     re.I,
@@ -198,10 +207,43 @@ PFMEA_FILENAME_TOKENS: tuple[str, ...] = (
     "过程 fmea",
 )
 
+PFMEA_SPREADSHEET_SUFFIXES: tuple[str, ...] = (".xlsx", ".xlsm")
+
+
+def _normalize_explicit_ap(value: str) -> str:
+    cleaned = value.strip().upper()
+    if cleaned in AP_RANK:
+        return cleaned
+    if cleaned and cleaned[0] in AP_RANK:
+        return cleaned[0]
+    return ""
+
+
+def _split_action_tail(tail: str) -> tuple[str, str]:
+    """Return (explicit_ap, action_text) from text after S/O/D/RPN."""
+    stripped = tail.strip()
+    if not stripped:
+        return "", ""
+    ap_match = re.match(r"^(?P<ap>[HML])\b\s*(?P<action>.*)$", stripped, re.I)
+    if ap_match:
+        return ap_match.group("ap").upper(), ap_match.group("action").strip()
+    ap_label = EXPLICIT_AP_PATTERN.search(stripped)
+    if ap_label:
+        action_text = stripped[ap_label.end() :].strip(" -:;|")
+        return ap_label.group(1).upper(), action_text
+    return "", stripped
+
 
 def _is_pfmea_filename(filename: str) -> bool:
     lowered = filename.lower()
     return any(token in lowered for token in PFMEA_FILENAME_TOKENS)
+
+
+def _is_pfmea_spreadsheet(inbox_file: InboxFile) -> bool:
+    return (
+        inbox_file.suffix.lower() in PFMEA_SPREADSHEET_SUFFIXES
+        and _is_pfmea_filename(inbox_file.name)
+    )
 
 
 def _looks_like_pfmea(text: str) -> bool:
@@ -267,13 +309,20 @@ def _make_pfmea_row(
     source_file: str,
     page_number: int | None,
     playbook: dict[str, Any],
+    explicit_ap: str = "",
 ) -> PfmeaRow | None:
     if not table_actions:
         return None
     mode = re.sub(r"\s+", " ", failure_mode).strip(" -:;|")
     if len(mode) < 8:
         mode = f"PFMEA failure mode (RPN {rpn})"
-    ap = pfmea_action_priority(severity, occurrence, detection) if severity else "M"
+    normalized_ap = _normalize_explicit_ap(explicit_ap)
+    if normalized_ap:
+        ap = normalized_ap
+    elif severity:
+        ap = pfmea_action_priority(severity, occurrence, detection)
+    else:
+        ap = "M"
     benchmark = benchmark_actions_for_failure_mode(mode, playbook)
     return PfmeaRow(
         failure_mode=mode[:120],
@@ -357,13 +406,18 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
         detection: int,
         rpn: int,
         table_action_text: str = "",
+        explicit_ap: str = "",
+        from_action_column: bool = False,
     ) -> None:
         if severity or occurrence or detection:
             if not _valid_sod_rpn(severity, occurrence, detection, rpn):
                 return
         elif rpn < 40:
             return
-        table_actions = split_table_actions(table_action_text)
+        table_actions = split_table_actions(
+            table_action_text,
+            from_action_column=from_action_column,
+        )
         if not table_actions:
             return
         key = (failure_mode.lower()[:60], rpn, table_actions[0][:40])
@@ -380,6 +434,7 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
             source_file=source_file,
             page_number=page_number,
             playbook=playbook,
+            explicit_ap=explicit_ap,
         )
         if row:
             rows.append(row)
@@ -391,6 +446,10 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
         tuple_match = SOD_RPN_TUPLE_PATTERN.search(context)
         if tuple_match:
             mode = context[: tuple_match.start()].strip(" -:;|")
+            explicit_ap = ""
+            ap_match = EXPLICIT_AP_PATTERN.search(context[tuple_match.end() :])
+            if ap_match:
+                explicit_ap = ap_match.group(1)
             add_row(
                 failure_mode=mode,
                 severity=int(tuple_match.group("sev")),
@@ -398,28 +457,51 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
                 detection=int(tuple_match.group("det")),
                 rpn=int(tuple_match.group("rpn")),
                 table_action_text=action_text,
+                explicit_ap=explicit_ap,
+                from_action_column=True,
             )
 
-    for match in RPN_ROW_PATTERN.finditer(text):
+    for match in SOD_RPN_AP_INLINE_PATTERN.finditer(text):
         end = match.end()
         tail = text[end : end + 220].split("\n", 1)[0]
+        mode = text[max(0, match.start() - 90) : match.start()].strip(" -:;|")
         add_row(
-            failure_mode=match.group("mode"),
+            failure_mode=mode,
             severity=int(match.group("sev")),
             occurrence=int(match.group("occ")),
             detection=int(match.group("det")),
             rpn=int(match.group("rpn")),
             table_action_text=tail,
+            explicit_ap=match.group("ap"),
+            from_action_column=True,
         )
 
-    for match in LINE_SOD_RPN_PATTERN.finditer(text):
+    for match in RPN_ROW_PATTERN.finditer(text):
+        end = match.end()
+        tail = text[end : end + 220].split("\n", 1)[0]
+        explicit_ap, action_text = _split_action_tail(tail)
         add_row(
             failure_mode=match.group("mode"),
             severity=int(match.group("sev")),
             occurrence=int(match.group("occ")),
             detection=int(match.group("det")),
             rpn=int(match.group("rpn")),
-            table_action_text=match.group("action") or "",
+            table_action_text=action_text,
+            explicit_ap=explicit_ap,
+            from_action_column=bool(explicit_ap),
+        )
+
+    for match in LINE_SOD_RPN_PATTERN.finditer(text):
+        explicit_ap, action_text = _split_action_tail(match.group("action") or "")
+        add_row(
+            failure_mode=match.group("mode"),
+            severity=int(match.group("sev")),
+            occurrence=int(match.group("occ")),
+            detection=int(match.group("det")),
+            rpn=int(match.group("rpn")),
+            table_action_text=action_text,
+            explicit_ap=explicit_ap,
+            from_action_column=bool(explicit_ap or action_text),
         )
 
     for line in text.splitlines():
@@ -431,16 +513,115 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
             continue
         mode = line[: tuple_match.start()].strip(" -:;|")
         tail = line[tuple_match.end() :].strip()
+        explicit_ap, action_text = _split_action_tail(tail)
         add_row(
             failure_mode=mode,
             severity=int(tuple_match.group("sev")),
             occurrence=int(tuple_match.group("occ")),
             detection=int(tuple_match.group("det")),
             rpn=int(tuple_match.group("rpn")),
-            table_action_text=tail,
+            table_action_text=action_text,
+            explicit_ap=explicit_ap,
+            from_action_column=bool(explicit_ap or action_text),
         )
 
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    index = 0
+    while index + 3 < len(lines):
+        try:
+            severity = int(lines[index])
+            occurrence = int(lines[index + 1])
+            detection = int(lines[index + 2])
+            rpn = int(lines[index + 3])
+        except ValueError:
+            index += 1
+            continue
+        if not _valid_sod_rpn(severity, occurrence, detection, rpn):
+            index += 1
+            continue
+        mode = lines[index - 1] if index > 0 else ""
+        cursor = index + 4
+        explicit_ap = ""
+        if cursor < len(lines) and lines[cursor].upper() in AP_RANK:
+            explicit_ap = lines[cursor].upper()
+            cursor += 1
+        action_parts: list[str] = []
+        while cursor < len(lines):
+            candidate = lines[cursor]
+            if re.fullmatch(r"\d{1,2}", candidate):
+                break
+            if SOD_RPN_TUPLE_PATTERN.search(candidate):
+                break
+            action_parts.append(candidate)
+            cursor += 1
+            if len(" ".join(action_parts)) >= 180:
+                break
+        add_row(
+            failure_mode=mode,
+            severity=severity,
+            occurrence=occurrence,
+            detection=detection,
+            rpn=rpn,
+            table_action_text=" ".join(action_parts),
+            explicit_ap=explicit_ap,
+            from_action_column=True,
+        )
+        index = cursor
+
     return rows
+
+
+def _parse_pfmea_xlsx_file(inbox_file: InboxFile) -> list[PfmeaRow]:
+    table = read_xlsx_rows(inbox_file.path)
+    if not table:
+        return []
+    playbook = pfmea_countermeasure_playbook()
+    seen: set[tuple[str, int, str]] = set()
+
+    def make_row(
+        *,
+        failure_mode: str,
+        severity: int,
+        occurrence: int,
+        detection: int,
+        rpn: int,
+        table_action_text: str = "",
+        explicit_ap: str = "",
+        from_action_column: bool = False,
+    ) -> PfmeaRow | None:
+        if severity or occurrence or detection:
+            if not _valid_sod_rpn(severity, occurrence, detection, rpn):
+                return None
+        elif rpn < 40:
+            return None
+        table_actions = split_table_actions(
+            table_action_text,
+            from_action_column=from_action_column,
+        )
+        if not table_actions:
+            return None
+        key = (failure_mode.lower()[:60], rpn, table_actions[0][:40])
+        if key in seen:
+            return None
+        seen.add(key)
+        return _make_pfmea_row(
+            failure_mode=failure_mode,
+            severity=severity,
+            occurrence=occurrence,
+            detection=detection,
+            rpn=rpn,
+            table_actions=table_actions,
+            source_file=inbox_file.relative_path,
+            page_number=None,
+            playbook=playbook,
+            explicit_ap=explicit_ap,
+        )
+
+    return parse_pfmea_xlsx_rows(
+        table,
+        source_file=inbox_file.relative_path,
+        make_row=make_row,
+    )
 
 
 def _collect_text_chunks(
@@ -491,6 +672,9 @@ def analyze_inbox_quality(
     pfmea_rows: list[PfmeaRow] = []
 
     for inbox_file in inbox_files:
+        if _is_pfmea_spreadsheet(inbox_file):
+            pfmea_rows.extend(_parse_pfmea_xlsx_file(inbox_file))
+            continue
         if inbox_file.suffix.lower() != ".pdf":
             continue
         binder_mode = inbox_file.relative_path in binder_files

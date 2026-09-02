@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from ppap_inbox_triage.classifier import classify_file
+from ppap_inbox_triage.layout import is_binder_filename
 from ppap_inbox_triage.models import InboxFile, MatchConfidence
 from ppap_inbox_triage.pdf_text import extract_pdf_text, pdf_text_available
 from ppap_inbox_triage.report import report_to_dict, write_all_reports
@@ -68,6 +69,59 @@ class ClassifierTests(unittest.TestCase):
         )
         self.assertEqual(matches[0].element.number, 3)
         self.assertTrue(matches[0].matched_pattern.startswith("content:"))
+
+    def test_classifies_chinese_filenames(self) -> None:
+        pfmea = InboxFile(
+            path=Path("06_过程FMEA_焊接.pdf"),
+            relative_path="06_过程FMEA_焊接.pdf",
+            name="06_过程FMEA_焊接.pdf",
+            suffix=".pdf",
+            size_bytes=1,
+        )
+        matches = classify_file(pfmea)
+        self.assertTrue(matches)
+        self.assertEqual(matches[0].element.number, 6)
+
+        psw = InboxFile(
+            path=Path("零件提交保证书.pdf"),
+            relative_path="零件提交保证书.pdf",
+            name="零件提交保证书.pdf",
+            suffix=".pdf",
+            size_bytes=1,
+        )
+        psw_matches = classify_file(psw)
+        self.assertEqual(psw_matches[0].element.number, 18)
+
+        plan = InboxFile(
+            path=Path("07_控制计划.xlsx"),
+            relative_path="07_控制计划.xlsx",
+            name="07_控制计划.xlsx",
+            suffix=".xlsx",
+            size_bytes=1,
+        )
+        plan_matches = classify_file(plan)
+        self.assertEqual(plan_matches[0].element.number, 7)
+
+    def test_chinese_content_not_confused_with_dfmea(self) -> None:
+        file = InboxFile(
+            path=Path("supplier.pdf"),
+            relative_path="supplier.pdf",
+            name="supplier.pdf",
+            suffix=".pdf",
+            size_bytes=1,
+        )
+        matches = classify_file(
+            file,
+            text_content="过程FMEA 过程功能 当前过程控制 失效模式 严重度 频度 探测度",
+        )
+        self.assertEqual(matches[0].element.number, 6)
+        self.assertFalse(any(match.element.number == 4 for match in matches if match.score >= 0.8))
+
+    def test_chinese_binder_filenames(self) -> None:
+        self.assertTrue(is_binder_filename("PPAP第3级提交.pdf"))
+        self.assertTrue(is_binder_filename("供应商PPAP卷宗.pdf"))
+        self.assertTrue(is_binder_filename("全套PPAP资料.pdf"))
+        self.assertTrue(is_binder_filename("PPAP Level 3_binder.pdf"))
 
 
 @unittest.skipUnless(pdf_text_available(), "pypdf is required for PDF extraction tests")

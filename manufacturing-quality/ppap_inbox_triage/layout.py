@@ -12,6 +12,32 @@ BINDER_FILENAME_PATTERNS: tuple[str, ...] = (
     r"ppap[\s_-]?binder",
     r"full[\s_-]?ppap",
     r"complete[\s_-]?ppap",
+    r"ppap[\s_-]?提交",
+    r"ppap[\s_-]?卷宗",
+    r"ppap[\s_-]?资料",
+    r"ppap[\s_-]?資料",
+    r"全套[\s_-]?ppap",
+    r"完整[\s_-]?ppap",
+    r"第[3三]级",
+    r"第[3三]級",
+)
+
+DISCRETE_FILENAME_TOKENS: tuple[str, ...] = (
+    "pfmea",
+    "dfmea",
+    "psw",
+    "control plan",
+    "fai",
+    "控制计划",
+    "控制計劃",
+    "过程fmea",
+    "過程fmea",
+    "保证书",
+    "保證書",
+    "设计记录",
+    "設計記錄",
+    "尺寸结果",
+    "尺寸結果",
 )
 
 MIN_BINDER_CONTENT_ELEMENTS = 3
@@ -19,7 +45,9 @@ MIN_DISCRETE_FILE_COUNT = 8
 
 
 def _normalize_filename(filename: str) -> str:
-    return re.sub(r"[_\-.]+", " ", filename.lower())
+    from .binder import normalize_text
+
+    return normalize_text(filename)
 
 
 def is_binder_filename(filename: str) -> bool:
@@ -103,6 +131,6 @@ def count_discrete_files(
             count += 1
             continue
         normalized = _normalize_filename(inbox_file.name)
-        if any(token in normalized for token in ("pfmea", "dfmea", "psw", "control plan", "fai")):
+        if any(token in normalized for token in DISCRETE_FILENAME_TOKENS):
             count += 1
     return count

@@ -167,6 +167,17 @@ Triage statuses used by this project:
 - `needs_clarification` — duplicates, orphans, weak matches
 - `blocked` — critical elements 6, 7, or 18 missing
 
+## Chinese / bilingual binders
+
+Supplier packages are often mixed English and Chinese (Simplified or Traditional). Classification must match **both**:
+
+- Element titles such as 设计记录 / 設計記錄, 过程FMEA / 過程FMEA, 控制计划 / 控制計劃, 零件提交保证书 / 零件提交保證書
+- A 目录 / 目錄 / 目次 page is a table of contents — skip it, same as English TOC
+- PDF text may insert spaces between Chinese characters; match on compacted text
+- Chinese filenames such as `06_过程FMEA.pdf` / `控制计划.xlsx` / `零件提交保证书.pdf` and binder names such as `PPAP第3级提交.pdf`
+- Image-only scanned PDFs have no extractable text — OCR is required before classification
+- Dashboard UI: Language / 语言 toggle (English / 中文). Matching always uses both languages regardless of the UI toggle.
+
 ## Official source
 
 Purchase and use: **AIAG Production Part Approval Process (PPAP), 4th Edition**, plus the applicable OEM CSR. This skill is a working checklist for agents, not licensed AIAG text.

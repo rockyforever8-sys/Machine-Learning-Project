@@ -160,6 +160,80 @@ class BinderSemanticsTests(unittest.TestCase):
         self.assertEqual(match_evidence(SimpleNamespace()), ())
         self.assertEqual(match_evidence(SimpleNamespace(evidence=("pfmea", "rpn"))), ("pfmea", "rpn"))
 
+    def test_chinese_toc_is_skipped(self) -> None:
+        toc = """
+目录
+1、设计记录 ................................ 3
+2、工程变更文件 ............................ 8
+3、客户工程批准 ............................ 10
+4、设计FMEA ................................ 12
+5、过程流程图 .............................. 20
+6、过程FMEA ................................ 24
+7、控制计划 ................................ 40
+8、测量系统分析 ............................ 52
+9、尺寸结果 ................................ 60
+10、材料试验 ............................... 75
+11、初始过程能力 ........................... 82
+12、合格实验室 ............................. 90
+13、外观批准报告 ........................... 94
+14、生产件样品 ............................. 96
+15、标准样品 ............................... 98
+16、检验辅具 ............................... 100
+17、顾客特殊要求 ........................... 105
+18、零件提交保证书 ......................... 110
+"""
+        self.assertTrue(is_index_page(toc))
+        matches = classify_binder_pages(
+            _inbox_file("PPAP Level 3_中文卷宗.pdf"),
+            [(1, "封面 PPAP 第3级"), (2, toc)],
+        )
+        self.assertEqual(matches, [])
+
+    def test_chinese_section_pages_not_toc(self) -> None:
+        pages = [
+            (1, "封面"),
+            (2, "目录\n1、设计记录\n6、过程FMEA\n7、控制计划\n18、零件提交保证书"),
+            (3, "6、过程FMEA 过程功能 当前过程控制 失效模式 严重度 频度 探测度 风险顺序数"),
+            (4, "7、控制计划 反应计划 抽样频率 控制方法 特殊特性 样本容量"),
+            (5, "零件提交保证书 提交等级 供应商授权签字 声明 零件号 零件名称"),
+        ]
+        matches = classify_binder_pages(_inbox_file("PPAP Level 3_中文.pdf"), pages)
+        by_element: dict[int, list[int]] = {}
+        for match in matches:
+            by_element.setdefault(match.element.number, []).append(match.page_number or 0)
+
+        self.assertNotIn(2, [page for pages in by_element.values() for page in pages])
+        self.assertEqual(by_element.get(6), [3])
+        self.assertEqual(by_element.get(7), [4])
+        self.assertEqual(by_element.get(18), [5])
+
+    def test_spaced_chinese_and_traditional(self) -> None:
+        spaced = "过 程 FMEA 当 前 过 程 控 制 失 效 模 式 严 重 度"
+        scores = score_page(spaced)
+        self.assertTrue(any(item.element.number == 6 and item.score >= 0.8 for item in scores))
+
+        traditional = "6、過程FMEA 過程功能 當前過程控制 失效模式 嚴重度 頻度 探測度"
+        trad_scores = score_page(traditional)
+        self.assertTrue(any(item.element.number == 6 and item.score >= 1.0 for item in trad_scores))
+        self.assertFalse(any(item.element.number == 4 for item in trad_scores))
+
+    def test_spaced_chinese_toc_is_skipped(self) -> None:
+        toc = "目 录\n1、设 计 记 录\n6、过 程 FMEA\n7、控 制 计 划\n18、零 件 提 交 保 证 书"
+        self.assertTrue(is_index_page(toc))
+        matches = classify_binder_pages(
+            _inbox_file("PPAP_中文.pdf"),
+            [(1, "封面"), (2, toc), (3, "6、过程FMEA 过程功能 当前过程控制 失效模式 严重度")],
+        )
+        self.assertTrue(all(match.page_number != 2 for match in matches))
+        self.assertTrue(any(match.element.number == 6 and match.page_number == 3 for match in matches))
+
+    def test_chinese_numbered_heading(self) -> None:
+        from ppap_inbox_triage.binder import detect_numbered_headings
+
+        self.assertIn(6, detect_numbered_headings("6、过程FMEA 过程功能"))
+        self.assertIn(7, detect_numbered_headings("7．控制计划 反应计划"))
+        self.assertIn(18, detect_numbered_headings("18、零件提交保证书 提交等级"))
+
 
 @unittest.skipUnless(pdf_text_available(), "pypdf is required for PDF extraction tests")
 class BinderInboxTriageTests(unittest.TestCase):

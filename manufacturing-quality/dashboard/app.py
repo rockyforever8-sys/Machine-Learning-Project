@@ -9,13 +9,29 @@ from pathlib import Path
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[1]
+DASHBOARD_DIR = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+if str(DASHBOARD_DIR) not in sys.path:
+    sys.path.insert(0, str(DASHBOARD_DIR))
 
+from i18n import element_display_name, element_status_label, status_label, ui_text
 from ppap_inbox_triage.report import format_console_summary, report_to_dict, write_all_reports
 from ppap_inbox_triage.skill_loader import skill_element_records, skill_metadata
 from ppap_inbox_triage.sqe_checklist import SQE_VERIFICATION_CHECKS, build_binder_page_index, format_page_numbers
 from ppap_inbox_triage.triage import triage_inbox
+
+
+def _lang() -> str:
+    return str(st.session_state.get("ui_language", "en"))
+
+
+def _t(key: str) -> str:
+    return ui_text(_lang(), key)
+
+
+def _element_name(element: object) -> str:
+    return element_display_name(_lang(), int(getattr(element, "number")), str(getattr(element, "name")))
 
 
 def _match_evidence(match: object) -> tuple[str, ...]:
@@ -65,7 +81,7 @@ def _run_triage(
 def _render_simple_table(rows: list[dict[str, object]]) -> None:
     """Render a table without pyarrow (blocked on some corporate Windows policies)."""
     if not rows:
-        st.info("No rows to display.")
+        st.info(_t("no_rows"))
         return
 
     columns = list(rows[0].keys())
@@ -89,35 +105,35 @@ def _render_simple_table(rows: list[dict[str, object]]) -> None:
 
 def _status_badge(status: str) -> str:
     color = STATUS_COLORS.get(status, "#64748b")
-    label = status.replace("_", " ").title()
+    label = status_label(_lang(), status)
     return (
         f"<span style='background:{color};color:white;padding:4px 10px;"
-        f"border-radius:999px;font-weight:600;'>{label}</span>"
+        f"border-radius:999px;font-weight:600;'>{html.escape(label)}</span>"
     )
 
 
 def _render_metrics(report) -> None:
     summary = report.summary
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Completeness", f"{summary['completeness_pct']}%")
-    col2.metric("Elements present", f"{summary['elements_present']}/18")
-    col3.metric("Files scanned", summary["files_scanned"])
-    col4.metric("Missing", summary["elements_missing"])
+    col1.metric(_t("completeness"), f"{summary['completeness_pct']}%")
+    col2.metric(_t("elements_present"), f"{summary['elements_present']}/18")
+    col3.metric(_t("files_scanned"), summary["files_scanned"])
+    col4.metric(_t("missing"), summary["elements_missing"])
 
     st.markdown(
-        f"**Submission layout:** `{summary.get('submission_layout', 'discrete')}` &nbsp; "
-        f"**Scanned:** {report.scanned_at}",
+        f"**{_t('submission_layout')}:** `{summary.get('submission_layout', 'discrete')}` &nbsp; "
+        f"**{_t('scanned')}:** {report.scanned_at}",
         unsafe_allow_html=True,
     )
     st.markdown(_status_badge(report.status.value), unsafe_allow_html=True)
     skill_title = report.summary.get("skill_title") or "AIAG PPAP 4th Edition"
-    st.caption(f"Rules source: **{skill_title}** skill (`{report.summary.get('skill_name', '')}`)")
+    st.caption(f"{_t('rules_source')}: **{skill_title}** skill (`{report.summary.get('skill_name', '')}`)")
     skipped = report.summary.get("index_pages_skipped") or []
     if skipped:
         st.caption(
-            "Table-of-contents/index pages skipped: "
+            f"{_t('toc_skipped')}: "
             + ", ".join(str(page) for page in skipped)
-            + ". Element pages are located by AIAG content evidence, not title listings."
+            + f". {_t('toc_note')}"
         )
 
 
@@ -133,14 +149,14 @@ def _render_element_table(report) -> None:
         rows.append(
             {
                 "#": triage.element.number,
-                "Element": triage.element.name,
-                "Status": triage.status.upper(),
-                "Priority": triage.element.priority.value,
-                "File": primary,
-                "Pages": format_page_numbers(triage.matches),
-                "AIAG evidence": ", ".join(evidence[:6]),
-                "AIAG rule": getattr(triage.element, "aiag_rule", "") or "",
-                "Notes": "; ".join(
+                _t("col_element"): _element_name(triage.element),
+                _t("col_status"): element_status_label(_lang(), triage.status),
+                _t("col_priority"): triage.element.priority.value,
+                _t("col_file"): primary,
+                _t("col_pages"): format_page_numbers(triage.matches),
+                _t("col_evidence"): ", ".join(evidence[:6]),
+                _t("col_rule"): getattr(triage.element, "aiag_rule", "") or "",
+                _t("col_notes"): "; ".join(
                     note
                     for note in triage.notes
                     if not note.startswith("AIAG PPAP")
@@ -154,11 +170,14 @@ def _render_element_table(report) -> None:
 def _render_binder_index(report) -> None:
     page_index = build_binder_page_index(report)
     if not page_index:
-        st.info("No binder page references detected. Run with PDF text enabled for binder submissions.")
+        st.info(_t("no_binder_pages"))
         return
 
     rows = [
-        {"Page": page, "Elements": ", ".join(f"#{number}" for number in numbers)}
+        {
+            _t("col_page"): page,
+            _t("col_elements"): ", ".join(f"#{number}" for number in numbers),
+        }
         for page, numbers in page_index
     ]
     _render_simple_table(rows)
@@ -171,15 +190,16 @@ def _render_sqe_checklist(report) -> None:
         record = records.get(triage.element.number, {})
         checks = SQE_VERIFICATION_CHECKS.get(triage.element.number, ("Verify element content",))
         with st.expander(
-            f"{triage.element.number}. {triage.element.name} — {triage.status.upper()} (pages: {pages})",
+            f"{triage.element.number}. {_element_name(triage.element)} — "
+            f"{element_status_label(_lang(), triage.status)} ({_t('pages_label')}: {pages})",
             expanded=triage.status == "missing",
         ):
-            st.write(f"**Source file:** `{triage.matches[0].file.relative_path if triage.matches else '—'}`")
-            st.write(f"**Priority:** {triage.element.priority.value}")
+            st.write(f"**{_t('source_file')}:** `{triage.matches[0].file.relative_path if triage.matches else '—'}`")
+            st.write(f"**{_t('priority')}:** {triage.element.priority.value}")
             if record.get("good"):
-                st.write(f"**Skill — what good looks like:** {record['good']}")
+                st.write(f"**{_t('skill_good')}:** {record['good']}")
             if record.get("watch_outs"):
-                st.write(f"**Skill — watch-outs:** {record['watch_outs']}")
+                st.write(f"**{_t('skill_watch')}:** {record['watch_outs']}")
             if getattr(triage.element, "aiag_rule", ""):
                 st.caption(triage.element.aiag_rule)
             if triage.notes:
@@ -191,18 +211,22 @@ def _render_sqe_checklist(report) -> None:
 def _render_skill_rules() -> None:
     meta = skill_metadata()
     st.subheader(meta["title"])
-    st.caption(f"Loaded from `{meta['source_path']}`")
+    st.caption(f"{_t('loaded_from')} `{meta['source_path']}`")
     st.write(
-        f"Default submission level **{meta['default_submission_level']}**. "
-        f"Critical elements: {', '.join(f'#{n}' for n in meta['critical_element_numbers'])}."
+        f"{_t('default_level')} **{meta['default_submission_level']}**. "
+        f"{_t('critical_elements')}: {', '.join(f'#{n}' for n in meta['critical_element_numbers'])}."
     )
     binder = meta.get("binder_rules") or {}
     if binder:
         st.markdown(
-            "- Skip table of contents: `{skip}`\n"
-            "- Title-only is not present: `{title}`\n"
-            "- PSW attached-document list is element 18 only: `{psw}`\n"
-            "- Scan every binder page: `{scan}`".format(
+            "- {skip_toc}: `{skip}`\n"
+            "- {title_only}: `{title}`\n"
+            "- {psw_only}: `{psw}`\n"
+            "- {scan_every}: `{scan}`".format(
+                skip_toc=_t("skip_toc"),
+                title_only=_t("title_only"),
+                psw_only=_t("psw_only"),
+                scan_every=_t("scan_every"),
                 skip=binder.get("skip_table_of_contents"),
                 title=binder.get("title_only_is_not_present"),
                 psw=binder.get("psw_checklist_is_element_18_only"),
@@ -214,11 +238,13 @@ def _render_skill_rules() -> None:
         rows.append(
             {
                 "#": record["number"],
-                "Element": record["name"],
-                "Priority": record["priority"],
-                "What good looks like": record.get("good", ""),
-                "Watch-outs": record.get("watch_outs", ""),
-                "AIAG rule": record.get("aiag_rule", ""),
+                _t("col_element"): element_display_name(
+                    _lang(), int(record["number"]), str(record["name"])
+                ),
+                _t("col_priority"): record["priority"],
+                _t("col_what_good"): record.get("good", ""),
+                _t("col_watch_outs"): record.get("watch_outs", ""),
+                _t("col_rule"): record.get("aiag_rule", ""),
             }
         )
     _render_simple_table(rows)
@@ -231,28 +257,39 @@ def main() -> None:
         layout="wide",
     )
 
-    st.title("PPAP Level 3 Inbox Triage")
-    st.caption("Local SQE dashboard for OneDrive supplier submission folders — driven by the AIAG PPAP 4th Edition skill")
+    language_label = st.sidebar.selectbox(
+        "Language / 语言",
+        ["English", "中文"],
+        index=1 if st.session_state.get("ui_language") == "zh" else 0,
+        key="ui_language_label",
+    )
+    st.session_state.ui_language = "zh" if language_label == "中文" else "en"
+
+    st.title(_t("title"))
+    st.caption(_t("caption"))
+    st.caption(_t("ocr_note"))
 
     with st.sidebar:
-        st.header("Inbox settings")
-        inbox_path = st.text_input("PPAP inbox folder", value=DEFAULT_INBOX)
-        output_dir = st.text_input("Output folder", value=DEFAULT_OUTPUT)
-        use_pdf_text = st.toggle("PDF text extraction", value=True)
-        layout_mode = st.selectbox("Layout mode", ["auto", "binder", "discrete"], index=0)
-        auto_refresh = st.toggle("Auto-refresh inbox", value=False)
-        refresh_seconds = st.number_input("Refresh interval (seconds)", min_value=5, max_value=300, value=30)
+        st.header(_t("inbox_settings"))
+        inbox_path = st.text_input(_t("inbox_folder"), value=DEFAULT_INBOX)
+        output_dir = st.text_input(_t("output_folder"), value=DEFAULT_OUTPUT)
+        use_pdf_text = st.toggle(_t("pdf_text"), value=True)
+        layout_mode = st.selectbox(
+            _t("layout_mode"),
+            ["auto", "binder", "discrete"],
+            index=0,
+            format_func=lambda value: _t(f"layout_{value}"),
+        )
+        auto_refresh = st.toggle(_t("auto_refresh"), value=False)
+        refresh_seconds = st.number_input(_t("refresh_interval"), min_value=5, max_value=300, value=30)
 
-        run_clicked = st.button("Run triage now", type="primary", use_container_width=True)
+        run_clicked = st.button(_t("run_triage"), type="primary", use_container_width=True)
 
         st.divider()
         meta = skill_metadata()
-        st.markdown(f"**Rules:** {meta['title']}")
-        st.caption(Path(meta["source_path"]).name if meta["source_path"] else "skill rules")
-        st.markdown(
-            "**Tip:** Point the inbox path at your OneDrive `PPAP Inbox` folder. "
-            "Classification follows the AIAG PPAP 4th Edition skill, not element titles alone."
-        )
+        st.markdown(f"**{_t('rules')}:** {meta['title']}")
+        st.caption(Path(meta["source_path"]).name if meta["source_path"] else _t("skill_rules_file"))
+        st.markdown(f"**Tip:** {_t('tip')}")
 
     inbox = Path(inbox_path)
     output = Path(output_dir)
@@ -266,14 +303,14 @@ def main() -> None:
 
     if run_clicked:
         if not inbox.exists():
-            st.error(f"Inbox path does not exist: {inbox}")
+            st.error(f"{_t('inbox_not_exist')}: {inbox}")
             return
         if not inbox.is_dir():
-            st.error(f"Inbox path is not a directory: {inbox}")
+            st.error(f"{_t('inbox_not_dir')}: {inbox}")
             return
 
     if wants_scan:
-        with st.spinner("Scanning inbox and classifying PPAP elements..."):
+        with st.spinner(_t("scanning")):
             try:
                 result = _run_triage(
                     inbox,
@@ -284,36 +321,43 @@ def main() -> None:
                 st.session_state.last_run = result["report"]
                 st.session_state.last_outputs = result["outputs"]
             except Exception as error:
-                st.error(f"Triage failed: {error}")
+                st.error(f"{_t('triage_failed')}: {error}")
                 return
 
     report = st.session_state.last_run
     outputs = st.session_state.last_outputs
 
     if report is None:
-        st.info("Configure your OneDrive inbox path in the sidebar, then click **Run triage now**.")
+        st.info(_t("configure"))
         if not inbox.exists():
-            st.warning("The inbox path does not exist yet. Check the path or sync OneDrive first.")
+            st.warning(_t("inbox_missing"))
         return
 
     _render_metrics(report)
 
     tab_overview, tab_elements, tab_binder, tab_sqe, tab_skill, tab_downloads = st.tabs(
-        ["Overview", "Elements", "Binder pages", "SQE checklist", "AIAG skill", "Downloads"]
+        [
+            _t("tab_overview"),
+            _t("tab_elements"),
+            _t("tab_binder"),
+            _t("tab_sqe"),
+            _t("tab_skill"),
+            _t("tab_downloads"),
+        ]
     )
 
     with tab_overview:
-        st.subheader("Recommended actions")
+        st.subheader(_t("recommended"))
         for index, action in enumerate(report.actions, start=1):
             st.write(f"{index}. {action}")
 
         binder_files = report.summary.get("binder_files", [])
         if binder_files:
-            st.subheader("Binder files")
+            st.subheader(_t("binder_files"))
             for path in binder_files:
                 st.code(path)
 
-        st.subheader("Console summary")
+        st.subheader(_t("console"))
         st.code(format_console_summary(report))
 
     with tab_elements:
@@ -323,14 +367,18 @@ def main() -> None:
         _render_binder_index(report)
 
     with tab_sqe:
-        st.subheader("SQE element verification")
-        decision = st.radio("Review decision", ["Approve", "Approve with conditions", "Reject"], horizontal=True)
-        st.text_input("Reviewer")
-        st.text_input("Part / Program")
-        st.text_input("Supplier")
-        st.text_area("Conditions / notes")
+        st.subheader(_t("sqe_verify"))
+        decision = st.radio(
+            _t("review_decision"),
+            [_t("approve"), _t("approve_conditions"), _t("reject")],
+            horizontal=True,
+        )
+        st.text_input(_t("reviewer"))
+        st.text_input(_t("part_program"))
+        st.text_input(_t("supplier"))
+        st.text_area(_t("conditions"))
         _render_sqe_checklist(report)
-        st.caption(f"Decision selected: {decision}")
+        st.caption(f"{_t('decision_selected')}: {decision}")
 
     with tab_skill:
         _render_skill_rules()
@@ -340,16 +388,16 @@ def main() -> None:
             for name, path in outputs.items():
                 if path.exists():
                     st.download_button(
-                        label=f"Download {path.name}",
+                        label=f"{_t('download')} {path.name}",
                         data=path.read_bytes(),
                         file_name=path.name,
                         mime="application/octet-stream",
                         use_container_width=True,
                     )
-        st.caption(f"Reports saved to `{output.resolve()}`")
+        st.caption(f"{_t('reports_saved')} `{output.resolve()}`")
 
     if auto_refresh and not run_clicked:
-        st.caption(f"Auto-refresh enabled — next scan in {refresh_seconds}s")
+        st.caption(f"{_t('auto_refresh_on')} {refresh_seconds}{_t('seconds')}")
         time.sleep(int(refresh_seconds))
         st.rerun()
 

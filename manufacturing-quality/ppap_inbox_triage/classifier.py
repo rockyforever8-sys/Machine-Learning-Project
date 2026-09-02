@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .binder import classify_binder_pages
+from .binder import classify_binder_pages, compact_text, has_cjk, marker_present
 from .elements import PPAP_LEVEL_3_ELEMENTS
 from .models import ElementMatch, InboxFile, MatchConfidence, PpapElement
 
@@ -14,8 +14,9 @@ CONTENT_MATCH_THRESHOLD = 0.6
 
 
 def _normalize(text: str) -> str:
-    lowered = text.lower()
-    return re.sub(r"[_\-.]+", " ", lowered)
+    from .binder import normalize_text
+
+    return normalize_text(text)
 
 
 def _ppap_prefix_number(filename: str) -> int | None:
@@ -28,9 +29,21 @@ def _ppap_prefix_number(filename: str) -> int | None:
     return None
 
 
+def _pattern_matches(normalized_text: str, compact: str, pattern: str) -> bool:
+    if not pattern:
+        return False
+    if has_cjk(pattern):
+        return marker_present(normalized_text, compact, pattern)
+    try:
+        return re.search(pattern, normalized_text, flags=re.IGNORECASE) is not None
+    except re.error:
+        return marker_present(normalized_text, compact, pattern)
+
+
 def _score_match(
     element: PpapElement,
     normalized_text: str,
+    compact: str,
     pattern: str,
     *,
     is_filename: bool,
@@ -39,9 +52,9 @@ def _score_match(
         if any(term in normalized_text for term in DESIGN_RECORD_EXCLUSIONS):
             return 0.0
 
-    if not re.search(pattern, normalized_text):
+    if not _pattern_matches(normalized_text, compact, pattern):
         return 0.0
-    if any(alias in normalized_text for alias in element.aliases):
+    if any(marker_present(normalized_text, compact, alias) for alias in element.aliases):
         return 1.0
     return 0.85
 
@@ -72,6 +85,7 @@ def _classify_normalized_text(
     if source == "binder":
         match_mode = "binder"
 
+    compact = compact_text(normalized_text)
     for element in PPAP_LEVEL_3_ELEMENTS:
         best_score = 0.0
         best_pattern = ""
@@ -80,6 +94,7 @@ def _classify_normalized_text(
             score = _score_match(
                 element,
                 normalized_text,
+                compact,
                 pattern,
                 is_filename=source == "filename",
             )
@@ -95,7 +110,7 @@ def _classify_normalized_text(
                 and any(term in normalized_text for term in DESIGN_RECORD_EXCLUSIONS)
             ):
                 continue
-            if alias in normalized_text and best_score < 0.8:
+            if marker_present(normalized_text, compact, alias) and best_score < 0.8:
                 best_score = 0.8
                 best_pattern = f"{source}:alias:{alias}"
 

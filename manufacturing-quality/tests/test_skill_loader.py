@@ -27,6 +27,13 @@ class SkillRulesLoaderTests(unittest.TestCase):
         self.assertGreaterEqual(len(checks[6]), 1)
         self.assertIn("PSW", " ".join(checks[18]))
 
+    def test_chinese_aliases_loaded_from_skill(self) -> None:
+        names = {element.number: element for element in PPAP_LEVEL_3_ELEMENTS}
+        self.assertIn("过程FMEA", names[6].aliases)
+        self.assertIn("控制计划", names[7].aliases)
+        self.assertIn("零件提交保证书", names[18].aliases)
+        self.assertIn("過程FMEA", names[6].aliases)
+
 
 if __name__ == "__main__":
     unittest.main()

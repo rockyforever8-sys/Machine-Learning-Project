@@ -51,6 +51,8 @@ Press `Ctrl+C` to stop. Watcher writes the same reports (including `sqe-checklis
 
 See [WINDOWS-QUICKSTART.md](./WINDOWS-QUICKSTART.md) for troubleshooting. If launch fails, check `dashboard-launch.log` in this folder.
 
+Use **Language / 语言** in the sidebar for English or 中文 labels. Matching always uses both English and Chinese (Simplified and Traditional), including 目录/目錄 pages and Chinese filenames such as `过程FMEA` / `控制计划` / `零件提交保证书`. Scanned image-only PDFs still need OCR.
+
 ```bash
 # Optional: launch from terminal instead
 cd manufacturing-quality

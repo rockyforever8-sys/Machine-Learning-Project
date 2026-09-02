@@ -34,7 +34,7 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 1. Supplier drops files into an inbox folder (flat or nested).
 2. Scanner inventories files and extracts lightweight metadata.
 3. **Layout detection** decides whether the submission is a **binder** (one/multi-section PDF), **discrete** (separate element files), or **mixed**.
-4. Classifier maps files to PPAP elements using filename patterns and **AIAG semantic content evidence** (per-page for binders). Table-of-contents / index pages are skipped so a title listing is not treated as the element itself.
+4. Classifier maps files to PPAP elements using filename patterns and **AIAG semantic content evidence** (per-page for binders). Matching is bilingual (English and Simplified/Traditional Chinese): TOC phrases such as 目录/目錄 are skipped, and PDF text that inserts spaces between Chinese characters is compacted before matching. Table-of-contents / index pages are skipped so a title listing is not treated as the element itself.
 5. Triage engine computes completeness, duplicates, and review queue using layout-specific rules.
 6. Report generator outputs JSON, CSV, Markdown triage report, and `sqe-checklist.md` with binder page ranges and evidence terms.
 7. Watch mode (optional) polls the inbox and re-runs triage when new files stabilize.
@@ -45,9 +45,9 @@ For a multi-section PPAP PDF (for example a 137-page Level 3 binder), every page
 
 | Rule | Behavior |
 |------|----------|
-| Table of contents / index | Skipped. A page listing 8+ element titles (or "Table of Contents") is not an element location. |
+| Table of contents / index | Skipped. A page listing 8+ element titles (or "Table of Contents" / 目录 / 目錄 / 目次) is not an element location. |
 | Title-only mention | Not enough to mark an element present. |
-| Semantic evidence | Unique markers (e.g. PFMEA + RPN + process step, PSW declaration + submission level, Cpk/Ppk) locate the actual section. |
+| Semantic evidence | Unique markers (e.g. PFMEA + RPN + process step, PSW declaration + submission level, Cpk/Ppk, 过程FMEA + 当前过程控制) locate the actual section. English and Chinese (Simplified/Traditional) are both matched. |
 | Section continuation | Following pages that continue the same table/form stay with that element until the next section starts. |
 | PSW checklist | The warrant form lists all 18 documents; only element 18 is assigned on that page. |
 

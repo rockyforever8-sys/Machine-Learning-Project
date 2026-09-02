@@ -5,6 +5,7 @@ import { OptionsPanel } from './components/OptionsPanel'
 import { PromptInput } from './components/PromptInput'
 import { StylePicker } from './components/StylePicker'
 import { useImageGenerator } from './hooks/useImageGenerator'
+import { isHiggsfieldModel } from './types'
 
 function App() {
   const {
@@ -16,6 +17,8 @@ function App() {
     history,
     isGenerating,
     error,
+    notice,
+    higgsfieldReady,
     generate,
     selectFromHistory,
     clearHistory,
@@ -30,7 +33,7 @@ function App() {
           </div>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-white">AI Image Generator</h1>
-            <p className="text-xs sm:text-sm text-gray-500">Turn text into images with AI</p>
+            <p className="text-xs sm:text-sm text-gray-500">Turn text into high-quality images with Higgsfield</p>
           </div>
         </div>
       </header>
@@ -64,6 +67,7 @@ function App() {
               onModelChange={model => setOptions(prev => ({ ...prev, model }))}
               onAspectRatioChange={aspectRatio => setOptions(prev => ({ ...prev, aspectRatio }))}
               disabled={isGenerating}
+              higgsfieldReady={higgsfieldReady}
             />
           </section>
 
@@ -72,6 +76,8 @@ function App() {
               image={currentImage}
               isGenerating={isGenerating}
               error={error}
+              notice={notice}
+              higgsfield={isHiggsfieldModel(options.model)}
               onRegenerate={generate}
             />
           </section>
@@ -86,7 +92,7 @@ function App() {
       </main>
 
       <footer className="border-t border-border py-4 text-center text-xs text-gray-600">
-        Powered by Pollinations AI · No API key required
+        High quality via Higgsfield Soul · Fast fallback via Pollinations
       </footer>
     </div>
   )

@@ -1,16 +1,32 @@
 # AI Image Generator
 
-Turn text prompts into AI-generated images in your browser.
+Turn text prompts into high-quality AI images. Default generation uses **Higgsfield Soul**. If Higgsfield is not connected, the app falls back to a fast Pollinations model.
 
 ## Features
 
-- **Text-to-image** — Describe what you want and generate instantly
-- **Style ideas** — Tap theme, technique, and genre buttons (Cinematic, Retro, Corporate, and more)
-- **Multiple models** — Flux, Turbo, Realism, and Anime styles
+- **Higgsfield Soul** — High-quality text-to-image (requires API keys)
+- **Style ideas** — Tap theme, technique, and genre buttons
+- **Fast fallback** — Flux / Turbo / Realism / Anime when Higgsfield is unavailable
 - **Aspect ratios** — Square, landscape, portrait, and more
 - **History** — Recent generations saved locally in your browser
 - **Download** — Save images as PNG files
-- **No API key** — Works out of the box via Pollinations AI
+
+## Connect Higgsfield (higher quality)
+
+1. Create a key at [Higgsfield Cloud](https://cloud.higgsfield.ai)
+2. Copy `image-generator/.env.example` to `image-generator/.env`
+3. Set:
+
+```bash
+HF_API_KEY_ID=your_key_id
+HF_API_KEY_SECRET=your_key_secret
+```
+
+4. Restart the app. The model dropdown should show **Higgsfield Soul is connected**.
+
+In Cursor, also connect the **Higgsfield MCP** integration (Settings → MCP) so Cloud Agents can use the same account.
+
+For the GitHub Pages site, deploy the API (`npm run api`) and set GitHub secret `GENERATE_API_URL` to that public URL. Never put Higgsfield secrets in frontend code.
 
 ## Local Development
 
@@ -33,10 +49,9 @@ npm run preview
 
 1. Enter a descriptive prompt (e.g. "A sunset over mountains")
 2. Choose a **theme**, **technique**, and **genre** — or tap **Surprise me**
-3. Choose a model and aspect ratio
+3. Keep **Higgsfield Soul (high quality)** selected, or pick a fast fallback model
 4. Click **Generate Image** or press `⌘/Ctrl + Enter`
-5. Download or regenerate as needed
 
 ## Tech Stack
 
-React 19 · TypeScript · Vite · Tailwind CSS 4 · Pollinations AI
+React 19 · TypeScript · Vite · Tailwind CSS 4 · Higgsfield Soul · Pollinations AI

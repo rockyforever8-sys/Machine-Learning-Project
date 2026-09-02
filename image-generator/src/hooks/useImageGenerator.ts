@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { composePrompt } from '../data/styles'
-import { buildImageUrl, preloadImage } from '../lib/api'
+import { checkHiggsfieldHealth, generateImage } from '../lib/api'
 import type { GeneratedImage, ImageOptions } from '../types'
 
 const HISTORY_KEY = 'ai-image-generator-history'
@@ -11,7 +11,9 @@ function loadHistory(): GeneratedImage[] {
     const raw = localStorage.getItem(HISTORY_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as GeneratedImage[]
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed)
+      ? parsed.map(item => ({ ...item, provider: item.provider ?? 'pollinations' }))
+      : []
   } catch {
     return []
   }
@@ -24,16 +26,19 @@ function saveHistory(history: GeneratedImage[]) {
 export function useImageGenerator() {
   const [prompt, setPrompt] = useState('')
   const [options, setOptions] = useState<ImageOptions>({
-    model: 'flux',
+    model: 'soul-standard',
     aspectRatio: '1:1',
   })
   const [currentImage, setCurrentImage] = useState<GeneratedImage | null>(null)
   const [history, setHistory] = useState<GeneratedImage[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [higgsfieldReady, setHiggsfieldReady] = useState<boolean | null>(null)
 
   useEffect(() => {
     setHistory(loadHistory())
+    void checkHiggsfieldHealth().then(setHiggsfieldReady)
   }, [])
 
   const generate = useCallback(async () => {
@@ -45,31 +50,32 @@ export function useImageGenerator() {
 
     setIsGenerating(true)
     setError(null)
+    setNotice(null)
 
     const seed = Math.floor(Math.random() * 1_000_000)
     const generationOptions = { ...options, seed }
     const composedPrompt = composePrompt(trimmed, generationOptions)
-    const url = buildImageUrl(trimmed, generationOptions)
-
-    const image: GeneratedImage = {
-      id: crypto.randomUUID(),
-      prompt: trimmed,
-      composedPrompt,
-      url,
-      options: generationOptions,
-      createdAt: Date.now(),
-    }
 
     try {
-      await preloadImage(url)
+      const result = await generateImage(trimmed, generationOptions)
+      const image: GeneratedImage = {
+        id: crypto.randomUUID(),
+        prompt: trimmed,
+        composedPrompt,
+        url: result.url,
+        provider: result.provider,
+        options: generationOptions,
+        createdAt: Date.now(),
+      }
       setCurrentImage(image)
+      setNotice(result.fallbackNotice ?? null)
       setHistory(prev => {
-        const next = [image, ...prev.filter(item => item.url !== url)].slice(0, MAX_HISTORY)
+        const next = [image, ...prev.filter(item => item.url !== result.url)].slice(0, MAX_HISTORY)
         saveHistory(next)
         return next
       })
-    } catch {
-      setError('Image generation failed. Please try again with a different prompt.')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Image generation failed. Please try again.')
     } finally {
       setIsGenerating(false)
     }
@@ -80,6 +86,7 @@ export function useImageGenerator() {
     setPrompt(image.prompt)
     setOptions(image.options)
     setError(null)
+    setNotice(null)
   }, [])
 
   const clearHistory = useCallback(() => {
@@ -96,6 +103,8 @@ export function useImageGenerator() {
     history,
     isGenerating,
     error,
+    notice,
+    higgsfieldReady,
     generate,
     selectFromHistory,
     clearHistory,

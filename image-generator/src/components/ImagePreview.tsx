@@ -8,10 +8,12 @@ interface ImagePreviewProps {
   image: GeneratedImage | null
   isGenerating: boolean
   error: string | null
+  notice?: string | null
+  higgsfield?: boolean
   onRegenerate: () => void
 }
 
-export function ImagePreview({ image, isGenerating, error, onRegenerate }: ImagePreviewProps) {
+export function ImagePreview({ image, isGenerating, error, notice, higgsfield, onRegenerate }: ImagePreviewProps) {
   const [isDownloading, setIsDownloading] = useState(false)
   const styleLabels = image ? selectedStyleLabels(image.options) : []
 
@@ -45,7 +47,9 @@ export function ImagePreview({ image, isGenerating, error, onRegenerate }: Image
         {isGenerating && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-surface-raised/90 z-10">
             <Loader2 className="w-10 h-10 text-accent animate-spin" />
-            <p className="text-sm text-gray-400">Creating your image...</p>
+            <p className="text-sm text-gray-400">
+              {higgsfield ? 'Creating a high-quality Higgsfield image...' : 'Creating your image...'}
+            </p>
             <div className="w-48 h-1 rounded-full bg-border overflow-hidden">
               <div className="h-full bg-accent animate-pulse w-2/3" />
             </div>
@@ -90,6 +94,12 @@ export function ImagePreview({ image, isGenerating, error, onRegenerate }: Image
         )}
       </div>
 
+      {notice && !isGenerating && (
+        <p className="mt-3 text-xs text-amber-300/90 bg-amber-400/10 border border-amber-400/20 rounded-xl px-3 py-2">
+          {notice}
+        </p>
+      )}
+
       {image && !isGenerating && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -101,6 +111,9 @@ export function ImagePreview({ image, isGenerating, error, onRegenerate }: Image
                 {styleLabels.join(' · ')}
               </p>
             )}
+            <p className="mt-1 text-[11px] text-gray-500">
+              {image.provider === 'higgsfield' ? 'Higgsfield Soul' : 'Fast fallback'}
+            </p>
           </div>
           <div className="flex gap-2 shrink-0">
             <button

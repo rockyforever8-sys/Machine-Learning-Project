@@ -28,13 +28,12 @@ Turn text prompts into AI-generated images in your browser.
 
 ### Features
 
-- **Text-to-image** — Describe what you want and generate instantly
+- **Higgsfield Soul** — High-quality text-to-image when API keys are connected
 - **Style ideas** — Tap theme, technique, and genre buttons (Cinematic, Retro, Corporate, and more)
-- **Multiple models** — Flux, Turbo, Realism, and Anime styles
+- **Fast fallback** — Works without keys via Pollinations
 - **Aspect ratios** — Square, landscape, portrait, and more
 - **History** — Recent generations saved locally in your browser
 - **Download** — Save images as PNG files
-- **No API key** — Works out of the box
 
 ### Local Development
 

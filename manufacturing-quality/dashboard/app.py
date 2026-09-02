@@ -286,6 +286,69 @@ def _render_skill_rules() -> None:
     _render_simple_table(rows)
 
 
+def _render_quality_analysis(report) -> None:
+    payload = report.summary.get("quality_analysis") or {}
+    flags = payload.get("flags") or []
+    if not flags and not payload.get("msa_findings") and not payload.get("capability_findings") and not payload.get("pfmea_top_rpn"):
+        st.info(_t("quality_none"))
+        return
+
+    if flags:
+        st.subheader(_t("quality_flags"))
+        for flag in flags:
+            st.warning(flag)
+
+    msa_rows = []
+    for item in payload.get("msa_findings", []):
+        msa_rows.append(
+            {
+                _t("col_metric"): item.get("metric"),
+                _t("col_value"): f"{item.get('value')}%",
+                _t("col_threshold"): f"<= {item.get('threshold')}%",
+                _t("col_status"): _t("quality_pass") if item.get("status") == "pass" else _t("quality_fail"),
+                _t("col_file"): item.get("source_file"),
+                _t("col_pages"): item.get("page_number") or "—",
+                _t("col_context"): item.get("context"),
+            }
+        )
+    if msa_rows:
+        st.subheader(_t("quality_msa"))
+        _render_simple_table(msa_rows)
+
+    cap_rows = []
+    for item in payload.get("capability_findings", []):
+        cap_rows.append(
+            {
+                _t("col_metric"): item.get("metric"),
+                _t("col_value"): item.get("value"),
+                _t("col_threshold"): f">= {item.get('threshold')}",
+                _t("col_status"): _t("quality_pass") if item.get("status") == "pass" else _t("quality_fail"),
+                _t("col_file"): item.get("source_file"),
+                _t("col_pages"): item.get("page_number") or "—",
+                _t("col_context"): item.get("context"),
+            }
+        )
+    if cap_rows:
+        st.subheader(_t("quality_capability"))
+        _render_simple_table(cap_rows)
+
+    pfmea_rows = []
+    for item in payload.get("pfmea_top_rpn", []):
+        pfmea_rows.append(
+            {
+                _t("col_failure_mode"): item.get("failure_mode"),
+                _t("col_rpn"): item.get("rpn"),
+                "S/O/D": f"{item.get('severity')}/{item.get('occurrence')}/{item.get('detection')}",
+                _t("col_file"): item.get("source_file"),
+                _t("col_pages"): item.get("page_number") or "—",
+                _t("col_countermeasures"): "; ".join(item.get("countermeasures", [])),
+            }
+        )
+    if pfmea_rows:
+        st.subheader(_t("quality_pfmea"))
+        _render_simple_table(pfmea_rows)
+
+
 def _render_packages_table(items: list[dict[str, object]]) -> None:
     rows = []
     for item in items:
@@ -316,18 +379,19 @@ def _render_package_detail(item: dict[str, object], *, key_prefix: str, include_
         _t("tab_elements"),
         _t("tab_binder"),
         _t("tab_sqe"),
+        _t("tab_quality"),
         _t("tab_downloads"),
     ]
     if include_skill:
-        tab_labels.insert(4, _t("tab_skill"))
+        tab_labels.insert(5, _t("tab_skill"))
     tabs = st.tabs(tab_labels)
-    tab_overview, tab_elements, tab_binder, tab_sqe = tabs[0], tabs[1], tabs[2], tabs[3]
+    tab_overview, tab_elements, tab_binder, tab_sqe, tab_quality = tabs[0], tabs[1], tabs[2], tabs[3], tabs[4]
     if include_skill:
-        tab_skill = tabs[4]
-        tab_downloads = tabs[5]
+        tab_skill = tabs[5]
+        tab_downloads = tabs[6]
     else:
         tab_skill = None
-        tab_downloads = tabs[4]
+        tab_downloads = tabs[5]
 
     with tab_overview:
         st.subheader(_t("recommended"))
@@ -368,6 +432,9 @@ def _render_package_detail(item: dict[str, object], *, key_prefix: str, include_
         st.text_area(_t("conditions"), key=f"{key_prefix}_conditions")
         _render_sqe_checklist(report, key_prefix=key_prefix)
         st.caption(f"{_t('decision_selected')}: {decision}")
+
+    with tab_quality:
+        _render_quality_analysis(report)
 
     if tab_skill is not None:
         with tab_skill:

@@ -28,6 +28,7 @@ from .models import (
     match_evidence,
 )
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
+from .quality_analysis import analyze_inbox_quality
 from .scanner import discover_submission_packages, scan_inbox
 from .sqe_checklist import compact_page_range, format_page_numbers
 
@@ -416,6 +417,19 @@ def triage_inbox(
             f"{compact_page_range(skipped_index_pages)} — element locations use "
             "AIAG content evidence, not title listings",
         )
+
+    quality = analyze_inbox_quality(
+        inbox_files,
+        use_pdf_text=use_pdf_text,
+        binder_files=binder_files,
+    )
+    summary["quality_analysis"] = quality.to_summary()
+    summary["quality_flags_count"] = len(quality.flags)
+    if quality.flags:
+        for action in reversed(quality.actions):
+            actions.insert(0, action)
+        if status == TriageStatus.READY_FOR_REVIEW:
+            status = TriageStatus.NEEDS_CLARIFICATION
 
     return TriageReport(
         inbox_path=inbox_path.resolve(),

@@ -137,6 +137,60 @@ Content evidence examples:
 - Capability: Cpk/Ppk, USL/LSL, subgroup
 - PSW: declaration, submission level, supplier authorized signature
 
+## Quality thresholds (automated flags)
+
+When PDF text is available, the workflow scans MSA, capability, and PFMEA sections and flags against common automotive benchmarks (CSR may be stricter):
+
+| Metric | Benchmark | Flag when |
+|--------|-----------|-----------|
+| **%GRR** (Gage R&R) | AIAG MSA | **> 10%** — measurement system not acceptable for production decisions |
+| **Cpk** | IATF / AIAG SPC practice | **< 1.33** on special characteristics |
+| **Ppk** | same | **< 1.33** when reported |
+| **PFMEA RPN** | AIAG FMEA | Top **5** highest RPN rows surfaced with counter-measures |
+
+Flags appear in triage **actions**, report JSON (`quality_analysis`), and the dashboard **Quality insights** tab.
+
+### MSA %GRR > 10% — counter-measures
+
+1. Confirm study follows AIAG MSA (appraisers, parts, trials, EV/AV/PV decomposition).
+2. Calibrate or replace gauge; verify fixture repeatability.
+3. Standardize measurement method and operator training; re-run Gage R&R.
+4. If 10–30%, document engineering justification and tighten detection in Control Plan.
+5. Do not approve PPAP on special characteristics until gauge is acceptable.
+
+### Cpk / Ppk < 1.33 — counter-measures
+
+1. Identify special causes (tool wear, setup drift, material lot, temperature).
+2. Apply containment and sort suspect lots; update reaction plan.
+3. Optimize process targeting (reduce variation, center the mean).
+4. Increase sampling / SPC until capability is re-demonstrated.
+5. Re-run initial process study and attach updated charts to Element 11.
+
+## PFMEA top-5 RPN counter-measures (industrial best practice)
+
+For each of the **five highest RPN** failure modes detected in the PFMEA text, apply the AIAG priority order: **reduce Severity first**, then **Occurrence**, then improve **Detection**. Default playbook (also in `rules.json`):
+
+1. **Mistake-proofing (poka-yoke)** at the source step to cut occurrence.
+2. **In-process detection** — add checks, sensors, or SPC tied to the Control Plan reaction plan.
+3. **Design/process change** when severity is driven by product risk (customer approval if needed).
+4. **Verify effectiveness** — update PFMEA, re-run MSA on affected gauges, re-run capability on SCs.
+5. **Escalate special characteristics** and document OEM CSR requirements.
+
+### Failure-mode specific patterns (examples)
+
+| Failure mode theme | Typical counter-measures |
+|--------------------|---------------------------|
+| Porosity / voids | Melt profile, venting, shot monitoring, cavity inspection |
+| Dimensional out of spec | Fixture calibration, SPC on drivers, fresh Gage R&R |
+| Scratch / handling damage | Rack/dunnage redesign, handling standards, transfer guards |
+| Wrong part / mix-up | Barcode at setup, color-coded bins, locked machine recipes |
+| Leak / seal | Torque/angle monitoring, 100% leak test, groove/lubricant review |
+| Weld defect | WPS qualification, electrode dress, in-line weld audit |
+| Contamination / FOD | Line clearance, filtered air, closed totes |
+| Torque / fastener | Tool calibration, poka-yoke socket count, MES traceability |
+
+Edit `rules.json` → `pfmea_countermeasure_playbook` to tune keywords and actions per your plant.
+
 ## Runtime source of truth
 
 Cursor agents read this `SKILL.md`. The PPAP CLI, binder classifier, and Streamlit dashboard load structured rules from **`rules.json` in this same folder**.

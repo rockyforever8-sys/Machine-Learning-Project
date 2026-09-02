@@ -1513,5 +1513,134 @@
         "PSW matches all supporting documentation"
       ]
     }
-  ]
+  ],
+  "quality_thresholds": {
+    "msa_percent_grr_max": 10.0,
+    "cpk_min": 1.33,
+    "ppk_min": 1.33,
+    "pfmea_top_rpn_limit": 5,
+    "pfmea_action_rpn_min": 100,
+    "references": [
+      "AIAG MSA 4th Ed.: %GRR <= 10% acceptable for most automotive gaging",
+      "AIAG SPC / IATF 16949 industry practice: Cpk >= 1.33 for initial production studies on special characteristics",
+      "AIAG FMEA: prioritize reduction of Severity, then Occurrence, then Detection for high RPN items"
+    ]
+  },
+  "pfmea_countermeasure_playbook": {
+    "countermeasure_limit": 5,
+    "default_countermeasures": [
+      "Apply mistake-proofing (poka-yoke) at the source step to reduce occurrence",
+      "Add or tighten in-process detection controls and reaction plan in the Control Plan",
+      "Reduce severity through design/process change when technically feasible",
+      "Verify effectiveness with updated PFMEA, MSA, and capability re-study",
+      "Escalate special characteristics and document customer approval if CSR requires"
+    ],
+    "failure_mode_patterns": [
+      {
+        "keywords": [
+          "porosity",
+          "void",
+          "bubble",
+          "气孔",
+          "空洞"
+        ],
+        "countermeasures": [
+          "Audit melt temperature, injection speed/pressure profile, and venting",
+          "Implement shot-to-shot process monitoring and purge discipline",
+          "Add visual or automated cavity inspection before downstream ops"
+        ]
+      },
+      {
+        "keywords": [
+          "dimension",
+          "out of spec",
+          "超差",
+          "尺寸"
+        ],
+        "countermeasures": [
+          "Review fixture/tool wear program and calibration frequency",
+          "Introduce SPC on the driving process parameters (not only final check)",
+          "Validate measurement system with fresh Gage R&R on the critical gauge"
+        ]
+      },
+      {
+        "keywords": [
+          "scratch",
+          "dent",
+          "damage",
+          "划伤",
+          "碰伤"
+        ],
+        "countermeasures": [
+          "Redesign handling racks, dunnage, and point-of-use packaging",
+          "Add tactile/visual standards and operator touch-time controls",
+          "Install interlocked sensors or proximity guards on transfer points"
+        ]
+      },
+      {
+        "keywords": [
+          "wrong part",
+          "mix-up",
+          "错件",
+          "混料"
+        ],
+        "countermeasures": [
+          "Barcode/RFID scan at setup and first-off verification",
+          "Color-coded bins, one-part-number-per-container policy",
+          "Lock setup parameters by part number in the machine controller"
+        ]
+      },
+      {
+        "keywords": [
+          "leak",
+          "seal",
+          "密封",
+          "泄漏"
+        ],
+        "countermeasures": [
+          "Control torque/force-angle curves with data capture",
+          "Add 100% leak test or sampling per Control Plan with traceable limits",
+          "Review seal groove design, lubricant, and assembly sequence"
+        ]
+      },
+      {
+        "keywords": [
+          "weld",
+          "焊",
+          "熔接"
+        ],
+        "countermeasures": [
+          "Qualify WPS and welder certification; log periodic destructive/peel tests",
+          "Monitor current, voltage, time, and electrode dress schedule",
+          "Add in-line weld audit with go/no-go fixture and photo traceability"
+        ]
+      },
+      {
+        "keywords": [
+          "contamination",
+          "foreign material",
+          "异物",
+          "污染"
+        ],
+        "countermeasures": [
+          "Enforce line clearance, FOD controls, and filtered compressed air",
+          "Add pre-assembly blow-off/cleaning step with defined frequency",
+          "Use closed totes and lint-free handling for sensitive surfaces"
+        ]
+      },
+      {
+        "keywords": [
+          "torque",
+          "fastener",
+          "螺栓",
+          "扭矩"
+        ],
+        "countermeasures": [
+          "Calibrate torque tools; apply joint audit and angle monitoring",
+          "Poka-yoke socket/batch count to prevent missed fasteners",
+          "Record torque traceability per serial/lot in MES"
+        ]
+      }
+    ]
+  }
 }

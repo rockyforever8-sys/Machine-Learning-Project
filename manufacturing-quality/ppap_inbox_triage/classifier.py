@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import re
 
-from .binder import classify_binder_pages
+from .binder import (
+    classify_binder_pages,
+    compact_text,
+    has_cjk,
+    is_index_page,
+    is_psw_form,
+    marker_present,
+)
 from .elements import PPAP_LEVEL_3_ELEMENTS
 from .models import ElementMatch, InboxFile, MatchConfidence, PpapElement
 
@@ -14,8 +21,9 @@ CONTENT_MATCH_THRESHOLD = 0.6
 
 
 def _normalize(text: str) -> str:
-    lowered = text.lower()
-    return re.sub(r"[_\-.]+", " ", lowered)
+    from .binder import normalize_text
+
+    return normalize_text(text)
 
 
 def _ppap_prefix_number(filename: str) -> int | None:
@@ -28,9 +36,21 @@ def _ppap_prefix_number(filename: str) -> int | None:
     return None
 
 
+def _pattern_matches(normalized_text: str, compact: str, pattern: str) -> bool:
+    if not pattern:
+        return False
+    if has_cjk(pattern):
+        return marker_present(normalized_text, compact, pattern)
+    try:
+        return re.search(pattern, normalized_text, flags=re.IGNORECASE) is not None
+    except re.error:
+        return marker_present(normalized_text, compact, pattern)
+
+
 def _score_match(
     element: PpapElement,
     normalized_text: str,
+    compact: str,
     pattern: str,
     *,
     is_filename: bool,
@@ -39,9 +59,9 @@ def _score_match(
         if any(term in normalized_text for term in DESIGN_RECORD_EXCLUSIONS):
             return 0.0
 
-    if not re.search(pattern, normalized_text):
+    if not _pattern_matches(normalized_text, compact, pattern):
         return 0.0
-    if any(alias in normalized_text for alias in element.aliases):
+    if any(marker_present(normalized_text, compact, alias) for alias in element.aliases):
         return 1.0
     return 0.85
 
@@ -72,6 +92,7 @@ def _classify_normalized_text(
     if source == "binder":
         match_mode = "binder"
 
+    compact = compact_text(normalized_text)
     for element in PPAP_LEVEL_3_ELEMENTS:
         best_score = 0.0
         best_pattern = ""
@@ -80,6 +101,7 @@ def _classify_normalized_text(
             score = _score_match(
                 element,
                 normalized_text,
+                compact,
                 pattern,
                 is_filename=source == "filename",
             )
@@ -95,7 +117,7 @@ def _classify_normalized_text(
                 and any(term in normalized_text for term in DESIGN_RECORD_EXCLUSIONS)
             ):
                 continue
-            if alias in normalized_text and best_score < 0.8:
+            if marker_present(normalized_text, compact, alias) and best_score < 0.8:
                 best_score = 0.8
                 best_pattern = f"{source}:alias:{alias}"
 
@@ -149,6 +171,27 @@ def _merge_matches(*match_groups: list[ElementMatch]) -> list[ElementMatch]:
     )
 
 
+def _looks_like_psw_filename(filename: str) -> bool:
+    normalized = _normalize(filename)
+    compact = compact_text(normalized)
+    return any(
+        marker_present(normalized, compact, marker)
+        for marker in (
+            "psw",
+            "part submission warrant",
+            "零件提交保证书",
+            "零件提交保證書",
+            "提交保证书",
+            "提交保證書",
+        )
+    )
+
+
+def _keep_psw_matches(matches: list[ElementMatch]) -> list[ElementMatch]:
+    psw_matches = [match for match in matches if match.element.number == 18]
+    return psw_matches or matches
+
+
 def classify_file(
     file: InboxFile,
     *,
@@ -157,6 +200,7 @@ def classify_file(
 ) -> list[ElementMatch]:
     normalized_name = _normalize(file.name)
     prefix_number = _ppap_prefix_number(file.name)
+    psw_filename = _looks_like_psw_filename(file.name)
 
     filename_matches = _classify_normalized_text(
         file,
@@ -165,17 +209,37 @@ def classify_file(
         prefix_number=prefix_number,
         apply_prefix_rules=True,
     )
+    if psw_filename:
+        filename_matches = _keep_psw_matches(filename_matches)
 
     content_groups: list[list[ElementMatch]] = []
+    psw_form = False
     if text_content:
-        content_groups.append(
-            _classify_normalized_text(
-                file,
-                _normalize(text_content),
-                source="content",
-                apply_prefix_rules=False,
+        normalized_content = _normalize(text_content)
+        compact_content = compact_text(normalized_content)
+        psw_form = is_psw_form(normalized_content, compact_content)
+        # A PSW attached-document list (or other TOC) names every element.
+        # That checklist is not evidence that those documents are in this file.
+        if psw_form:
+            content_groups.append(
+                _keep_psw_matches(
+                    _classify_normalized_text(
+                        file,
+                        normalized_content,
+                        source="content",
+                        apply_prefix_rules=False,
+                    )
+                )
             )
-        )
+        elif not is_index_page(text_content, normalized_content):
+            content_groups.append(
+                _classify_normalized_text(
+                    file,
+                    normalized_content,
+                    source="content",
+                    apply_prefix_rules=False,
+                )
+            )
 
     if page_texts:
         for page_number, page_text in page_texts:
@@ -192,7 +256,10 @@ def classify_file(
     if not content_groups:
         return filename_matches
 
-    return _merge_matches(filename_matches, *content_groups)
+    merged = _merge_matches(filename_matches, *content_groups)
+    if psw_filename or psw_form:
+        return _keep_psw_matches(merged)
+    return merged
 
 
 def content_element_hits(matches: list[ElementMatch]) -> set[int]:

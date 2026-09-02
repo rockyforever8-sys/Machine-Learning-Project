@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 
 from .pdf_text import pdf_text_available
-from .report import format_console_summary, write_all_reports
-from .triage import triage_inbox
+from .report import format_console_summary, write_all_reports, write_package_reports
+from .triage import triage_inbox, triage_packages
 from .watcher import watch_inbox
 
 
@@ -66,7 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--layout",
         choices=("auto", "discrete", "binder"),
         default="auto",
-        help="Submission layout strategy: auto-detect binder vs discrete files (default: auto).",
+        help="Submission layout: auto detects a binder PDF plus leftover discrete files (default: auto).",
     )
     _add_pdf_flags(triage_parser)
 
@@ -113,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--layout",
         choices=("auto", "discrete", "binder"),
         default="auto",
-        help="Submission layout strategy: auto-detect binder vs discrete files (default: auto).",
+        help="Submission layout: auto detects a binder PDF plus leftover discrete files (default: auto).",
     )
 
     return parser
@@ -139,29 +139,55 @@ def main(argv: list[str] | None = None) -> int:
             return pdf_error
 
         try:
-            report = triage_inbox(
-                args.inbox,
-                submission_level=3,
-                recursive=not args.no_recursive,
-                use_pdf_text=args.pdf_text,
-                pdf_max_pages=args.pdf_max_pages,
-                layout_mode=args.layout,
-            )
+            if args.no_recursive:
+                report = triage_inbox(
+                    args.inbox,
+                    submission_level=3,
+                    recursive=False,
+                    use_pdf_text=args.pdf_text,
+                    pdf_max_pages=args.pdf_max_pages,
+                    layout_mode=args.layout,
+                )
+                written = [
+                    {
+                        "report": report,
+                        "outputs": write_all_reports(report, args.output),
+                    }
+                ]
+            else:
+                results = triage_packages(
+                    args.inbox,
+                    submission_level=3,
+                    use_pdf_text=args.pdf_text,
+                    pdf_max_pages=args.pdf_max_pages,
+                    layout_mode=args.layout,
+                )
+                written = write_package_reports(results, args.output)
         except (FileNotFoundError, NotADirectoryError, ValueError) as error:
             print(f"Error: {error}", file=sys.stderr)
             return 1
 
-        outputs = write_all_reports(report, args.output)
-        print(format_console_summary(report))
-        print("Reports written:")
-        for name, path in outputs.items():
-            print(f"  {name}: {path}")
-        if "sqe_checklist" in outputs:
-            print("SQE review: open sqe-checklist.md for binder page references")
+        written = write_package_reports(results, args.output)
+        blocked = False
+        incomplete = False
+        for item in written:
+            report = item["report"]
+            outputs = item["outputs"]
+            print(format_console_summary(report))
+            print("Reports written:")
+            for name, path in outputs.items():
+                print(f"  {name}: {path}")
+            if "sqe_checklist" in outputs:
+                print("SQE review: open sqe-checklist.md for binder page references")
+            print()
+            if report.status.value == "blocked":
+                blocked = True
+            if report.summary["elements_missing"] > 0:
+                incomplete = True
 
-        if args.fail_on_blocked and report.status.value == "blocked":
+        if args.fail_on_blocked and blocked:
             return 2
-        if args.fail_on_incomplete and report.summary["elements_missing"] > 0:
+        if args.fail_on_incomplete and incomplete:
             return 1
 
     if args.command == "watch":

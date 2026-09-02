@@ -153,12 +153,13 @@ Loader search order:
 When classifying or reviewing PPAP inbox files:
 
 1. Identify **submission level** (default Level 3).
-2. Detect **binder vs discrete vs mixed**.
-3. Map files/pages to the **18 elements** using AIAG content, not titles.
-4. Flag **critical gaps** first: PSW (18), Control Plan (7), PFMEA (6).
-5. Call out **physical artifacts** 14–16 even if paperwork exists.
-6. Check **5/6/7 consistency** and PSW vs drawing rev.
-7. Apply **CSR (17)** before closing “N/A” on 3, 13, 15.
+2. Treat **each immediate inbox subfolder as an independent submission** with its own 18-element review. Do not mix files across supplier folders.
+3. Detect **binder vs discrete vs mixed** inside that folder.
+4. Map files/pages to the **18 elements** using AIAG content, not titles.
+5. Flag **critical gaps** first: PSW (18), Control Plan (7), PFMEA (6).
+6. Call out **physical artifacts** 14–16 even if paperwork exists.
+7. Check **5/6/7 consistency** and PSW vs drawing rev.
+8. Apply **CSR (17)** before closing “N/A” on 3, 13, 15.
 
 Triage statuses used by this project:
 
@@ -166,6 +167,18 @@ Triage statuses used by this project:
 - `incomplete` — required elements missing
 - `needs_clarification` — duplicates, orphans, weak matches
 - `blocked` — critical elements 6, 7, or 18 missing
+
+## Chinese / bilingual binders
+
+Supplier packages are often mixed English and Chinese (Simplified or Traditional). Classification must match **both**:
+
+- Element titles such as 设计记录 / 設計記錄, 过程FMEA / 過程FMEA, 控制计划 / 控制計劃, 零件提交保证书 / 零件提交保證書
+- A 目录 / 目錄 / 目次 page is a table of contents — skip it, same as English TOC
+- A PSW form listing 1–18 attached documents is **element 18 only**. Do not mark Design Records (or any other element) present or duplicate from that checklist.
+- PDF text may insert spaces between Chinese characters; match on compacted text
+- Chinese filenames such as `06_过程FMEA.pdf` / `控制计划.xlsx` / `零件提交保证书.pdf` and binder names such as `PPAP第3级提交.pdf`
+- Image-only scanned PDFs have no extractable text — OCR is required before classification
+- Dashboard UI: Language / 语言 toggle (English / 中文). Matching always uses both languages regardless of the UI toggle.
 
 ## Official source
 

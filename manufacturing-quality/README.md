@@ -12,7 +12,7 @@ python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out 
 
 ## What it does
 
-1. **Scans** an inbox folder (recursive by default)
+1. **Scans** an inbox folder. Immediate subfolders are independent PPAP submissions (18-element review each).
 2. **Detects layout** — binder vs discrete vs mixed submission
 3. **Classifies** each file to PPAP elements using filename patterns and AIAG semantic PDF content (per-page for binders; table-of-contents pages are skipped)
 4. **Triages** completeness, critical gaps, duplicates, and orphans
@@ -50,6 +50,8 @@ Press `Ctrl+C` to stop. Watcher writes the same reports (including `sqe-checklis
 **You do not need Git Bash.** Double-click **`Start PPAP Dashboard.vbs`** in File Explorer (most reliable), or `run-dashboard.bat`.
 
 See [WINDOWS-QUICKSTART.md](./WINDOWS-QUICKSTART.md) for troubleshooting. If launch fails, check `dashboard-launch.log` in this folder.
+
+Use **Language / 语言** in the sidebar for English or 中文 labels. Matching always uses both English and Chinese (Simplified and Traditional), including 目录/目錄 pages and Chinese filenames such as `过程FMEA` / `控制计划` / `零件提交保证书`. Scanned image-only PDFs still need OCR.
 
 ```bash
 # Optional: launch from terminal instead

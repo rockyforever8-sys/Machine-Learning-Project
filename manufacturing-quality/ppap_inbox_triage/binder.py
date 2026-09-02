@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from .elements import ELEMENT_BY_NUMBER, PPAP_LEVEL_3_ELEMENTS
 from .models import ElementMatch, InboxFile, MatchConfidence, PpapElement
+from .skill_loader import skill_metadata
 
 INDEX_PHRASES: tuple[str, ...] = (
     "table of contents",
@@ -18,6 +20,19 @@ INDEX_PHRASES: tuple[str, ...] = (
     "index of ppap",
     "list of ppap elements",
     "ppap element list",
+    "目录",
+    "目錄",
+    "目次",
+    "文件清单",
+    "文件清單",
+    "表格内容",
+    "表格內容",
+    "提交目录",
+    "提交目錄",
+    "附件清单",
+    "附件清單",
+    "ppap目录",
+    "ppap目錄",
 )
 
 PSW_FORM_MARKERS: tuple[str, ...] = (
@@ -31,6 +46,14 @@ PSW_FORM_MARKERS: tuple[str, ...] = (
     "authorized customer representative",
     "molds / dies",
     "checking aid no",
+    "零件提交保证书",
+    "零件提交保證書",
+    "供应商授权签字",
+    "供應商授權簽字",
+    "提交等级",
+    "提交等級",
+    "声明",
+    "聲明",
 )
 
 INDEX_TITLE_HIT_THRESHOLD = 8
@@ -38,9 +61,11 @@ INDEX_NUMBERED_THRESHOLD = 8
 MULTI_TITLE_PAGE_THRESHOLD = 4
 CONTINUATION_GAP_LIMIT = 2
 MIN_ASSIGN_SCORE = 0.6
+CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
 HEADING_RE = re.compile(
-    r"(?:^|\n)\s*(?:element\s+|ppap\s+element\s+)?(1[0-8]|[1-9])[\.\:\)]\s+([^\n]{3,90})",
+    r"(?:^|\n)\s*(?:element\s+|ppap\s+element\s+|要素|项目|項目|第)?"
+    r"(1[0-8]|[1-9])[\.\:\)、．]\s*([^\n]{2,90})",
     re.IGNORECASE,
 )
 
@@ -57,10 +82,14 @@ class PageElementScore:
     title_hit: bool
 
 
+def has_cjk(text: str) -> bool:
+    return CJK_RE.search(text) is not None
+
+
 def normalize_text(text: str) -> str:
-    lowered = text.lower().replace("\u00a0", " ")
-    lowered = lowered.replace("–", "-").replace("—", "-")
-    return re.sub(r"[_\-.]+", " ", lowered)
+    folded = unicodedata.normalize("NFKC", text).lower().replace("\u00a0", " ")
+    folded = folded.replace("–", "-").replace("—", "-")
+    return re.sub(r"[_\-.]+", " ", folded)
 
 
 def compact_text(normalized: str) -> str:
@@ -72,19 +101,22 @@ def marker_present(normalized: str, compact: str, marker: str) -> bool:
     if not marker_n:
         return False
 
+    compact_marker = re.sub(r"\s+", "", marker_n)
+    if has_cjk(marker_n):
+        if marker_n in normalized:
+            return True
+        return bool(compact_marker) and compact_marker in compact
+
     if " " in marker_n or len(marker_n) > 4:
         if marker_n in normalized:
             return True
-        compact_marker = re.sub(r"\s+", "", marker_n)
         return len(compact_marker) >= 5 and compact_marker in compact
 
     pattern = rf"\b{re.escape(marker_n)}\b"
     if re.search(pattern, normalized):
         return True
-    compact_marker = re.sub(r"[^a-z0-9&]+", "", marker_n)
-    return len(compact_marker) >= 3 and re.search(
-        rf"{re.escape(compact_marker)}", compact
-    ) is not None
+    ascii_marker = re.sub(r"[^a-z0-9&]+", "", marker_n)
+    return len(ascii_marker) >= 3 and re.search(rf"{re.escape(ascii_marker)}", compact) is not None
 
 
 def _title_aliases(element: PpapElement) -> tuple[str, ...]:
@@ -93,7 +125,13 @@ def _title_aliases(element: PpapElement) -> tuple[str, ...]:
 
 
 def element_title_hit(normalized: str, element: PpapElement) -> bool:
+    compact = compact_text(normalized)
     for alias in _title_aliases(element):
+        if has_cjk(alias):
+            compact_alias = re.sub(r"\s+", "", alias)
+            if alias in normalized or compact_alias in compact:
+                return True
+            continue
         if " " in alias:
             if alias in normalized:
                 return True
@@ -118,19 +156,30 @@ def detect_numbered_headings(page_text: str) -> list[int]:
         if number not in ELEMENT_BY_NUMBER:
             continue
         element = ELEMENT_BY_NUMBER[number]
-        title = match.group(2).lower()
-        if element.name.lower() in title or any(alias in title for alias in element.aliases):
+        title_norm = normalize_text(match.group(2))
+        if element_title_hit(title_norm, element):
             if number not in found:
                 found.append(number)
     return found
 
 
+def _index_phrases() -> tuple[str, ...]:
+    extra = skill_metadata().get("binder_rules", {}).get("index_phrases") or []
+    return tuple(dict.fromkeys([*INDEX_PHRASES, *[str(item).lower() for item in extra]]))
+
+
+def _psw_form_markers() -> tuple[str, ...]:
+    extra = skill_metadata().get("binder_rules", {}).get("psw_form_markers") or []
+    return tuple(dict.fromkeys([*PSW_FORM_MARKERS, *[str(item).lower() for item in extra]]))
+
+
 def is_index_page(page_text: str, normalized: str | None = None) -> bool:
     normalized = normalized if normalized is not None else normalize_text(page_text)
+    compact = compact_text(normalized)
     title_hits = count_element_title_hits(normalized)
     numbered_headings = detect_numbered_headings(page_text)
 
-    if any(phrase in normalized for phrase in INDEX_PHRASES):
+    if any(marker_present(normalized, compact, phrase) for phrase in _index_phrases()):
         return True
     if len(title_hits) >= INDEX_TITLE_HIT_THRESHOLD:
         return True
@@ -142,7 +191,7 @@ def is_index_page(page_text: str, normalized: str | None = None) -> bool:
 
 
 def is_psw_form(normalized: str, compact: str) -> bool:
-    hits = sum(1 for marker in PSW_FORM_MARKERS if marker_present(normalized, compact, marker))
+    hits = sum(1 for marker in _psw_form_markers() if marker_present(normalized, compact, marker))
     return hits >= 3
 
 
@@ -187,6 +236,11 @@ def score_element_on_page(
         heading = first_chunk.strip().startswith(element.name.lower()) or (
             element.name.lower() in first_chunk[:80]
         )
+        if not heading:
+            heading = any(
+                has_cjk(alias) and alias.lower() in first_chunk[:120]
+                for alias in element.aliases
+            )
 
     evidence = tuple(dict.fromkeys([*unique_hits, *content_hits[:6]]))
     unique_count = len(unique_hits)

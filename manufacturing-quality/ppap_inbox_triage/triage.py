@@ -6,13 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from .binder import find_index_pages
-from .classifier import classify_binder_pdf, classify_file, content_element_hits
+from .classifier import classify_binder_pdf, classify_file, content_element_hits, _looks_like_psw_filename
 from .elements import CRITICAL_ELEMENT_NUMBERS, PPAP_LEVEL_3_ELEMENTS
 from .skill_loader import skill_metadata
 from .layout import (
     count_discrete_files,
     detect_submission_layout,
     identify_binder_candidates,
+    leftover_files,
 )
 from .models import (
     ElementMatch,
@@ -21,12 +22,13 @@ from .models import (
     MatchConfidence,
     OrphanFile,
     SubmissionLayout,
+    SubmissionPackage,
     TriageReport,
     TriageStatus,
     match_evidence,
 )
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
-from .scanner import scan_inbox
+from .scanner import discover_submission_packages, scan_inbox
 from .sqe_checklist import compact_page_range, format_page_numbers
 
 
@@ -42,9 +44,7 @@ def _element_status(
         match for match in matches if match.confidence != MatchConfidence.LOW
     ]
     if not strong_matches:
-        if len(matches) == 1:
-            return "review"
-        return "duplicate"
+        return "review"
 
     source_files = {match.file.relative_path for match in strong_matches}
     non_binder_files = {path for path in source_files if path not in binder_files}
@@ -150,7 +150,12 @@ def _assign_discrete_file(
         return
 
     top_match = file_matches[0]
-    if top_match.confidence == MatchConfidence.LOW and len(file_matches) > 1:
+    if _looks_like_psw_filename(inbox_file.name):
+        for match in file_matches:
+            if match.element.number == 18:
+                top_match = match
+                break
+    elif top_match.confidence == MatchConfidence.LOW and len(file_matches) > 1:
         for match in file_matches:
             if match.confidence != MatchConfidence.LOW:
                 top_match = match
@@ -231,6 +236,7 @@ def triage_inbox(
     file_matches_cache: dict[str, list[ElementMatch]] = {}
     index_pages_by_file: dict[str, list[int]] = {}
     binder_pages_with_text = 0
+    image_only_binders: list[str] = []
     for inbox_file in inbox_files:
         is_binder = inbox_file.relative_path in binder_files
         matches, page_texts = _classify_inbox_file(
@@ -240,6 +246,11 @@ def triage_inbox(
             binder_mode=is_binder,
         )
         file_matches_cache[inbox_file.relative_path] = matches
+        if is_binder:
+            from .pdf_text import pdf_page_count
+
+            if not page_texts and pdf_page_count(inbox_file.path) > 0:
+                image_only_binders.append(inbox_file.relative_path)
         if page_texts:
             index_pages_by_file[inbox_file.relative_path] = find_index_pages(page_texts)
             binder_pages_with_text += len(page_texts)
@@ -374,7 +385,9 @@ def triage_inbox(
         "binder_classified_elements": binder_element_count,
         "submission_layout": submission_layout.value,
         "binder_files": sorted(binder_files),
+        "discrete_files": leftover_files(inbox_files, binder_files),
         "binder_pages_with_text": binder_pages_with_text,
+        "image_only_binders": image_only_binders,
         "index_pages_skipped": skipped_index_pages,
         "skill_name": skill["skill_name"],
         "skill_title": skill["title"],
@@ -389,6 +402,13 @@ def triage_inbox(
         submission_layout=submission_layout,
         binder_files=binder_files,
     )
+    if image_only_binders:
+        names = ", ".join(f"`{name}`" for name in image_only_binders)
+        actions.insert(
+            0,
+            "PPAP package PDF has no extractable text (likely a scan). "
+            f"OCR is required to locate the 18 elements inside {names}",
+        )
     if skipped_index_pages:
         actions.insert(
             1 if actions else 0,
@@ -407,3 +427,34 @@ def triage_inbox(
         summary=summary,
         actions=actions,
     )
+
+
+def triage_packages(
+    inbox_path: Path,
+    *,
+    submission_level: int = 3,
+    use_pdf_text: bool = False,
+    pdf_max_pages: int = 5,
+    layout_mode: str = "auto",
+) -> list[tuple[SubmissionPackage, TriageReport]]:
+    """Run an independent 18-element review for each detected submission folder."""
+    results: list[tuple[SubmissionPackage, TriageReport]] = []
+    for package in discover_submission_packages(inbox_path):
+        report = triage_inbox(
+            package.path,
+            submission_level=submission_level,
+            recursive=package.recursive,
+            use_pdf_text=use_pdf_text,
+            pdf_max_pages=pdf_max_pages,
+            layout_mode=layout_mode,
+        )
+        report.summary["package_name"] = package.name
+        report.summary["package_path"] = str(package.path)
+        report.summary["package_kind"] = package.kind
+        if package.kind == "folder":
+            report.actions.insert(
+                0,
+                f"Independent Level 3 review of `{package.name}` — not mixed with other inbox folders",
+            )
+        results.append((package, report))
+    return results

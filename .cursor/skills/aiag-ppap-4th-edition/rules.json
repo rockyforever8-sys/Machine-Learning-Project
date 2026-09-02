@@ -16,7 +16,35 @@
     "skip_table_of_contents": true,
     "title_only_is_not_present": true,
     "psw_checklist_is_element_18_only": true,
-    "scan_every_page": true
+    "scan_every_page": true,
+    "index_phrases": [
+      "目录",
+      "目錄",
+      "目次",
+      "文件清单",
+      "文件清單",
+      "表格内容",
+      "表格內容",
+      "提交目录",
+      "提交目錄",
+      "附件清单",
+      "附件清單"
+    ],
+    "psw_form_markers": [
+      "零件提交保证书",
+      "零件提交保證書",
+      "供应商授权签字",
+      "供應商授權簽字",
+      "提交等级",
+      "提交等級",
+      "声明",
+      "聲明"
+    ],
+    "languages": [
+      "en",
+      "zh-Hans",
+      "zh-Hant"
+    ]
   },
   "triage_statuses": {
     "ready_for_review": "all 18 represented",
@@ -33,7 +61,13 @@
         "drawing",
         "cad",
         "specification",
-        "dwg"
+        "dwg",
+        "设计记录",
+        "設計記錄",
+        "图纸",
+        "圖紙",
+        "工程图",
+        "工程圖"
       ],
       "filename_patterns": [
         "design[\\s_-]?record",
@@ -41,7 +75,9 @@
         "\\bdwg\\b",
         "\\bcad\\b",
         "spec[\\s_-]?sheet",
-        "2d[\\s_-]?print"
+        "2d[\\s_-]?print",
+        "设计记录",
+        "設計記錄"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -62,7 +98,18 @@
         "cad data",
         "2d print",
         "sheet 1 of",
-        "scale"
+        "scale",
+        "图号",
+        "圖號",
+        "图纸编号",
+        "标题栏",
+        "標題欄",
+        "版次",
+        "材料规格",
+        "材料規格",
+        "公差",
+        "工程图",
+        "工程圖"
       ],
       "unique_markers": [
         "title block",
@@ -71,12 +118,24 @@
         "gd&t",
         "ballooned drawing",
         "engineering drawing",
-        "design record"
+        "design record",
+        "设计记录",
+        "設計記錄",
+        "图号",
+        "圖號",
+        "标题栏",
+        "標題欄",
+        "工程图",
+        "工程圖"
       ],
       "exclude_markers": [
         "checking fixture drawing",
         "gage drawing",
-        "fixture drawing"
+        "fixture drawing",
+        "检具图",
+        "檢具圖",
+        "夹具图",
+        "夾具圖"
       ],
       "continuation_markers": [
         "dim",
@@ -86,7 +145,7 @@
         "rev",
         "sheet"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.1: Design records must show the latest engineering change level, including drawings, CAD/CAM data, and specifications.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.1: Design records must show the latest engineering change level, including drawings, CAD/CAM data, and specifications.",
       "good": "Latest released drawing/CAD/specs; ballooned print for dimensional",
       "watch_outs": "Wrong rev; fixture drawings are not design records",
       "sqe_checks": [
@@ -101,14 +160,21 @@
         "ecn",
         "eco",
         "engineering change",
-        "change notice"
+        "change notice",
+        "工程变更",
+        "工程變更",
+        "工程更改",
+        "变更通知",
+        "變更通知"
       ],
       "filename_patterns": [
         "\\becn\\b",
         "\\beco\\b",
         "engineering[\\s_-]?change",
         "change[\\s_-]?notice",
-        "change[\\s_-]?document"
+        "change[\\s_-]?document",
+        "工程变更",
+        "工程變更"
       ],
       "priority": "medium",
       "physical_artifact": false,
@@ -124,7 +190,16 @@
         "reason for change",
         "change description",
         "change level",
-        "authorized engineering change"
+        "authorized engineering change",
+        "工程变更通知",
+        "工程變更通知",
+        "工程变更单",
+        "工程變更單",
+        "生效日期",
+        "变更原因",
+        "變更原因",
+        "变更等级",
+        "變更等級"
       ],
       "unique_markers": [
         "engineering change notice",
@@ -132,7 +207,13 @@
         "ecn",
         "eco",
         "change notice",
-        "authorized engineering change"
+        "authorized engineering change",
+        "工程变更通知",
+        "工程變更通知",
+        "工程变更单",
+        "工程變更單",
+        "工程变更",
+        "工程變更"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -142,7 +223,7 @@
         "eco",
         "ecn"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.2: Include authorized engineering change documents not yet recorded in the design record but incorporated in the product.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.2: Include authorized engineering change documents not yet recorded in the design record but incorporated in the product.",
       "good": "ECN/ECO incorporated but not yet in the drawing",
       "watch_outs": "Missing effectivity; stale change level vs PSW",
       "sqe_checks": [
@@ -156,13 +237,21 @@
       "aliases": [
         "customer approval",
         "engineering approval",
-        "deviation"
+        "deviation",
+        "客户工程批准",
+        "客戶工程批准",
+        "顾客工程批准",
+        "顧客工程批准",
+        "偏差许可",
+        "偏差許可"
       ],
       "filename_patterns": [
         "customer[\\s_-]?approval",
         "engineering[\\s_-]?approval",
         "\\bdeviation\\b",
-        "customer[\\s_-]?sign[\\s_-]?off"
+        "customer[\\s_-]?sign[\\s_-]?off",
+        "客户工程批准",
+        "顧客工程批准"
       ],
       "priority": "medium",
       "physical_artifact": false,
@@ -176,13 +265,26 @@
         "approved by customer",
         "customer sign-off",
         "customer signed",
-        "approval date"
+        "approval date",
+        "客户工程批准",
+        "顧客工程批准",
+        "偏差许可",
+        "偏差許可",
+        "客户签字",
+        "客戶簽字",
+        "批准日期"
       ],
       "unique_markers": [
         "customer engineering approval",
         "deviation permit",
         "customer approval",
-        "engineering approval"
+        "engineering approval",
+        "客户工程批准",
+        "客戶工程批准",
+        "顾客工程批准",
+        "顧客工程批准",
+        "偏差许可",
+        "偏差許可"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -191,7 +293,7 @@
         "waiver",
         "customer signature"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.3: Customer engineering approval is required when specified by the customer (signed approval or authorized deviation).",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.3: Customer engineering approval is required when specified by the customer (signed approval or authorized deviation).",
       "good": "Signed approval or authorized deviation when required",
       "watch_outs": "Blanket N/A without CSR basis",
       "sqe_checks": [
@@ -204,11 +306,17 @@
       "name": "Design FMEA",
       "aliases": [
         "dfmea",
-        "design fmea"
+        "design fmea",
+        "设计失效模式",
+        "設計失效模式",
+        "设计FMEA",
+        "設計FMEA"
       ],
       "filename_patterns": [
         "\\bdfmea\\b",
-        "design[\\s_-]?fmea"
+        "design[\\s_-]?fmea",
+        "设计失效",
+        "設計失效"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -225,17 +333,41 @@
         "design function",
         "failure effect",
         "classification",
-        "action results"
+        "action results",
+        "设计失效",
+        "設計失效",
+        "设计功能",
+        "設計功能",
+        "严重度",
+        "嚴重度",
+        "频度",
+        "頻度",
+        "探测度",
+        "探測度",
+        "风险顺序数",
+        "風險優先數"
       ],
       "unique_markers": [
         "dfmea",
         "design fmea",
         "design failure mode",
-        "design function"
+        "design function",
+        "设计失效模式",
+        "設計失效模式",
+        "设计FMEA",
+        "設計FMEA",
+        "设计功能",
+        "設計功能"
       ],
       "exclude_markers": [
         "process fmea",
-        "pfmea"
+        "pfmea",
+        "过程FMEA",
+        "過程FMEA",
+        "制程FMEA",
+        "製程FMEA",
+        "过程失效",
+        "過程失效"
       ],
       "continuation_markers": [
         "sev",
@@ -247,7 +379,7 @@
         "occurrence",
         "detection"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.4: A Design FMEA developed per the FMEA manual, with severity/occurrence/detection and actions for high-risk items.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.4: A Design FMEA developed per the FMEA manual, with severity/occurrence/detection and actions for high-risk items.",
       "good": "DFMEA per FMEA manual; SEV/OCC/DET; actions on high risk",
       "watch_outs": "PFMEA labeled as DFMEA; no design function",
       "sqe_checks": [
@@ -261,13 +393,23 @@
       "aliases": [
         "pfd",
         "process flow",
-        "routing"
+        "routing",
+        "过程流程图",
+        "過程流程圖",
+        "工艺流程图",
+        "工藝流程圖",
+        "制程流程图",
+        "製程流程圖"
       ],
       "filename_patterns": [
         "\\bpfd\\b",
         "process[\\s_-]?flow",
         "routing[\\s_-]?flow",
-        "flow[\\s_-]?diagram"
+        "flow[\\s_-]?diagram",
+        "过程流程",
+        "過程流程",
+        "工艺流程",
+        "工藝流程"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -284,13 +426,29 @@
         "process map",
         "routing",
         "op no",
-        "operation no"
+        "operation no",
+        "过程步骤",
+        "過程步驟",
+        "工序",
+        "来料",
+        "來料",
+        "出货",
+        "出貨",
+        "返工",
+        "作业说明",
+        "作業說明"
       ],
       "unique_markers": [
         "process flow diagram",
         "process flow",
         "pfd",
-        "process map"
+        "process map",
+        "过程流程图",
+        "過程流程圖",
+        "工艺流程图",
+        "工藝流程圖",
+        "制程流程图",
+        "製程流程圖"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -301,7 +459,7 @@
         "shipping",
         "rework"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.5: Process flow diagrams must describe the entire process from incoming material through shipping, including rework and inspection.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.5: Process flow diagrams must describe the entire process from incoming material through shipping, including rework and inspection.",
       "good": "Incoming to process to inspect to rework to ship",
       "watch_outs": "Flow does not match PFMEA/Control Plan ops",
       "sqe_checks": [
@@ -314,11 +472,21 @@
       "name": "Process FMEA",
       "aliases": [
         "pfmea",
-        "process fmea"
+        "process fmea",
+        "过程失效模式",
+        "過程失效模式",
+        "过程FMEA",
+        "過程FMEA",
+        "制程FMEA",
+        "製程FMEA"
       ],
       "filename_patterns": [
         "\\bpfmea\\b",
-        "process[\\s_-]?fmea"
+        "process[\\s_-]?fmea",
+        "过程失效",
+        "過程失效",
+        "过程FMEA",
+        "過程FMEA"
       ],
       "priority": "critical",
       "physical_artifact": false,
@@ -337,17 +505,41 @@
         "prevention",
         "detection control",
         "special characteristic",
-        "recommended action"
+        "recommended action",
+        "过程功能",
+        "過程功能",
+        "当前过程控制",
+        "當前過程控制",
+        "特殊特性",
+        "严重度",
+        "嚴重度",
+        "频度",
+        "頻度",
+        "探测度",
+        "探測度",
+        "风险顺序数",
+        "風險優先數",
+        "失效模式"
       ],
       "unique_markers": [
         "pfmea",
         "process fmea",
         "process failure mode",
-        "current process control"
+        "current process control",
+        "过程FMEA",
+        "過程FMEA",
+        "过程失效模式",
+        "過程失效模式",
+        "当前过程控制",
+        "當前過程控制"
       ],
       "exclude_markers": [
         "design fmea",
-        "dfmea"
+        "dfmea",
+        "设计FMEA",
+        "設計FMEA",
+        "设计失效",
+        "設計失效"
       ],
       "continuation_markers": [
         "sev",
@@ -359,9 +551,18 @@
         "severity",
         "occurrence",
         "detection",
-        "process control"
+        "process control",
+        "严重度",
+        "嚴重度",
+        "频度",
+        "頻度",
+        "探测度",
+        "探測度",
+        "失效模式",
+        "过程步骤",
+        "過程步驟"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.6: A Process FMEA per the FMEA manual for the manufacturing process, with special characteristics and process controls.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.6: A Process FMEA per the FMEA manual for the manufacturing process, with special characteristics and process controls.",
       "good": "PFMEA for the manufacturing process; special characteristics; process controls",
       "watch_outs": "Critical. Title-only / TOC hit is not a PFMEA",
       "sqe_checks": [
@@ -374,11 +575,15 @@
       "name": "Control Plan",
       "aliases": [
         "control plan",
-        "pre-launch control plan"
+        "pre-launch control plan",
+        "控制计划",
+        "控制計劃"
       ],
       "filename_patterns": [
         "control[\\s_-]?plan",
-        "pre[\\s_-]?launch"
+        "pre[\\s_-]?launch",
+        "控制计划",
+        "控制計劃"
       ],
       "priority": "critical",
       "physical_artifact": false,
@@ -396,13 +601,32 @@
         "product characteristic",
         "process characteristic",
         "specification tolerance",
-        "machine device jig"
+        "machine device jig",
+        "反应计划",
+        "反應計劃",
+        "抽样频率",
+        "抽樣頻率",
+        "控制方法",
+        "样本容量",
+        "樣本容量",
+        "特殊特性",
+        "预投产",
+        "預投產",
+        "生产控制计划",
+        "生產控制計劃"
       ],
       "unique_markers": [
         "control plan",
         "reaction plan",
         "sample frequency",
-        "control method"
+        "control method",
+        "控制计划",
+        "控制計劃",
+        "反应计划",
+        "反應計劃",
+        "抽样频率",
+        "抽樣頻率",
+        "控制方法"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -414,7 +638,7 @@
         "tolerance",
         "characteristic"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.7: Control Plan per APQP listing controls, sampling, and reaction plans that match the PFMEA and process flow.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.7: Control Plan per APQP listing controls, sampling, and reaction plans that match the PFMEA and process flow.",
       "good": "Prototype / pre-launch / production as applicable; sampling; reaction plan",
       "watch_outs": "Critical. Must align with PFMEA + flow",
       "sqe_checks": [
@@ -429,7 +653,11 @@
         "msa",
         "gage r&r",
         "grr",
-        "measurement system"
+        "measurement system",
+        "测量系统分析",
+        "測量系統分析",
+        "量具再现性",
+        "量具R&R"
       ],
       "filename_patterns": [
         "\\bmsa\\b",
@@ -437,7 +665,10 @@
         "\\bgrr\\b",
         "measurement[\\s_-]?system",
         "bias[\\s_-]?study",
-        "linearity[\\s_-]?study"
+        "linearity[\\s_-]?study",
+        "测量系统",
+        "測量系統",
+        "量具"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -459,7 +690,18 @@
         "ndc",
         "number of distinct categories",
         "%grr",
-        "percent grr"
+        "percent grr",
+        "测量系统分析",
+        "測量系統分析",
+        "重复性",
+        "重複性",
+        "再现性",
+        "再現性",
+        "偏倚",
+        "线性",
+        "線性",
+        "稳定性",
+        "穩定性"
       ],
       "unique_markers": [
         "gage r&r",
@@ -468,7 +710,14 @@
         "repeatability",
         "reproducibility",
         "msa",
-        "%grr"
+        "%grr",
+        "测量系统分析",
+        "測量系統分析",
+        "量具R&R",
+        "重复性",
+        "重複性",
+        "再现性",
+        "再現性"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -482,7 +731,7 @@
         "grr",
         "part"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.8: Measurement System Analysis (Gage R&R, bias, linearity, stability) for gauges used on special characteristics.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.8: Measurement System Analysis (Gage R&R, bias, linearity, stability) for gauges used on special characteristics.",
       "good": "Gage R&R (and bias/linearity/stability as required) on SC gauges",
       "watch_outs": "Study not on the gauge used for the SC",
       "sqe_checks": [
@@ -497,7 +746,12 @@
         "dimensional",
         "layout",
         "inspection results",
-        "balloon"
+        "balloon",
+        "尺寸结果",
+        "尺寸結果",
+        "尺寸报告",
+        "尺寸報告",
+        "全尺寸"
       ],
       "filename_patterns": [
         "dimensional",
@@ -506,7 +760,10 @@
         "balloon",
         "cmm[\\s_-]?report",
         "first[\\s_-]?article",
-        "\\bfai\\b"
+        "\\bfai\\b",
+        "尺寸结果",
+        "尺寸結果",
+        "全尺寸"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -527,7 +784,19 @@
         "characteristic number",
         "nominal",
         "upper spec",
-        "lower spec"
+        "lower spec",
+        "实测值",
+        "實測值",
+        "尺寸检验",
+        "尺寸檢驗",
+        "三坐标",
+        "三座標",
+        "气泡图",
+        "氣泡圖",
+        "合格",
+        "超差",
+        "名义值",
+        "名義值"
       ],
       "unique_markers": [
         "dimensional results",
@@ -535,7 +804,13 @@
         "first article",
         "cmm report",
         "balloon no",
-        "fai"
+        "fai",
+        "尺寸结果",
+        "尺寸結果",
+        "全尺寸检验",
+        "全尺寸檢驗",
+        "尺寸报告",
+        "尺寸報告"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -549,7 +824,7 @@
         "nok",
         "dim"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.9: Dimensional results for all design-record characteristics, with measured values, spec limits, and OK/not OK.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.9: Dimensional results for all design-record characteristics, with measured values, spec limits, and OK/not OK.",
       "good": "All design-record characteristics; actual vs spec; OK/not OK",
       "watch_outs": "Partial layout; missing balloons",
       "sqe_checks": [
@@ -564,7 +839,13 @@
         "material test",
         "performance test",
         "mill cert",
-        "coa"
+        "coa",
+        "材料试验",
+        "材料試驗",
+        "性能试验",
+        "性能試驗",
+        "材质证明",
+        "材質證明"
       ],
       "filename_patterns": [
         "material[\\s_-]?test",
@@ -574,7 +855,11 @@
         "cert[\\s_-]?of[\\s_-]?analysis",
         "lab[\\s_-]?report",
         "tensile",
-        "hardness[\\s_-]?test"
+        "hardness[\\s_-]?test",
+        "材料试验",
+        "材料試驗",
+        "材质证明",
+        "材質證明"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -595,7 +880,18 @@
         "lot number",
         "test result",
         "lab report",
-        "material specification"
+        "material specification",
+        "化学成分",
+        "化學成分",
+        "抗拉强度",
+        "抗拉強度",
+        "硬度",
+        "炉号",
+        "爐號",
+        "材质报告",
+        "材質報告",
+        "合格证明",
+        "合格證明"
       ],
       "unique_markers": [
         "mill certificate",
@@ -604,7 +900,15 @@
         "chemical composition",
         "performance test",
         "material test",
-        "coa"
+        "coa",
+        "材质证明",
+        "材質證明",
+        "材料试验",
+        "材料試驗",
+        "性能试验",
+        "性能試驗",
+        "化学成分",
+        "化學成分"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -616,7 +920,7 @@
         "result",
         "spec"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.10: Material and/or performance test results as specified on the design record (certs, lab reports, functional tests).",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.10: Material and/or performance test results as specified on the design record (certs, lab reports, functional tests).",
       "good": "Certs, lab reports, functional tests per design record",
       "watch_outs": "Out-of-date lots; wrong spec",
       "sqe_checks": [
@@ -632,7 +936,12 @@
         "ppk",
         "capability",
         "spc",
-        "process study"
+        "process study",
+        "初始过程能力",
+        "初始過程能力",
+        "过程能力",
+        "過程能力",
+        "能力研究"
       ],
       "filename_patterns": [
         "\\bcpk\\b",
@@ -640,7 +949,11 @@
         "capability[\\s_-]?study",
         "process[\\s_-]?study",
         "\\bspc\\b",
-        "initial[\\s_-]?process"
+        "initial[\\s_-]?process",
+        "过程能力",
+        "過程能力",
+        "初始过程",
+        "初始過程"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -660,14 +973,30 @@
         "subgroup",
         "capability index",
         "standard deviation",
-        "special characteristic"
+        "special characteristic",
+        "过程能力",
+        "過程能力",
+        "控制图",
+        "控制圖",
+        "子组",
+        "子組",
+        "规格上限",
+        "規格上限",
+        "规格下限",
+        "規格下限"
       ],
       "unique_markers": [
         "cpk",
         "ppk",
         "process capability",
         "initial process study",
-        "capability study"
+        "capability study",
+        "过程能力",
+        "過程能力",
+        "初始过程研究",
+        "初始過程研究",
+        "初始过程能力",
+        "初始過程能力"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -680,7 +1009,7 @@
         "sample",
         "stdev"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.11: Initial process studies (Cpk/Ppk) for all special characteristics identified in the control plan.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.11: Initial process studies (Cpk/Ppk) for all special characteristics identified in the control plan.",
       "good": "Cpk/Ppk (or CSR index) on special characteristics",
       "watch_outs": "Charts without index; wrong subgrouping",
       "sqe_checks": [
@@ -694,13 +1023,23 @@
       "aliases": [
         "lab accreditation",
         "iso 17025",
-        "qualified lab"
+        "qualified lab",
+        "合格实验室",
+        "合格實驗室",
+        "实验室认可",
+        "實驗室認可",
+        "实验室资质",
+        "實驗室資質"
       ],
       "filename_patterns": [
         "lab[\\s_-]?accredit",
         "iso[\\s_-]?17025",
         "qualified[\\s_-]?lab",
-        "laboratory[\\s_-]?scope"
+        "laboratory[\\s_-]?scope",
+        "实验室认可",
+        "實驗室認可",
+        "合格实验室",
+        "合格實驗室"
       ],
       "priority": "medium",
       "physical_artifact": false,
@@ -715,14 +1054,24 @@
         "nabl",
         "ukas",
         "accreditation body",
-        "test method"
+        "test method",
+        "认可证书",
+        "認可證書",
+        "实验室范围",
+        "實驗室範圍",
+        "检测能力",
+        "檢測能力"
       ],
       "unique_markers": [
         "iso 17025",
         "iso/iec 17025",
         "laboratory accreditation",
         "a2la",
-        "qualified laboratory"
+        "qualified laboratory",
+        "实验室认可",
+        "實驗室認可",
+        "合格实验室",
+        "合格實驗室"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -731,7 +1080,7 @@
         "test method",
         "certificate"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.12: Inspection and testing for PPAP shall be performed by a qualified laboratory with documented scope/accreditation.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.12: Inspection and testing for PPAP shall be performed by a qualified laboratory with documented scope/accreditation.",
       "good": "Lab scope/accreditation covering the test methods",
       "watch_outs": "Expired cert; method not in scope",
       "sqe_checks": [
@@ -745,13 +1094,19 @@
       "aliases": [
         "aar",
         "appearance approval",
-        "color master"
+        "color master",
+        "外观批准",
+        "外觀批准",
+        "外观批准报告",
+        "外觀批准報告"
       ],
       "filename_patterns": [
         "\\baar\\b",
         "appearance[\\s_-]?approval",
         "color[\\s_-]?master",
-        "master[\\s_-]?panel"
+        "master[\\s_-]?panel",
+        "外观批准",
+        "外觀批准"
       ],
       "priority": "medium",
       "physical_artifact": false,
@@ -765,13 +1120,24 @@
         "surface appearance",
         "master plaque",
         "color master",
-        "aar"
+        "aar",
+        "色板",
+        "光泽",
+        "光澤",
+        "纹理",
+        "紋理",
+        "外观",
+        "外觀"
       ],
       "unique_markers": [
         "appearance approval report",
         "appearance approval",
         "aar",
-        "color master"
+        "color master",
+        "外观批准报告",
+        "外觀批准報告",
+        "外观批准",
+        "外觀批准"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -781,7 +1147,7 @@
         "grain",
         "appearance"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.13: Appearance Approval Report (AAR) is required for parts with color, grain, or appearance requirements.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.13: Appearance Approval Report (AAR) is required for parts with color, grain, or appearance requirements.",
       "good": "Required for color/grain/appearance items",
       "watch_outs": "Skipped on appearance parts",
       "sqe_checks": [
@@ -795,13 +1161,23 @@
       "aliases": [
         "sample parts",
         "production sample",
-        "sample tag"
+        "sample tag",
+        "生产件样品",
+        "生產件樣品",
+        "样件",
+        "樣件",
+        "样品标签",
+        "樣品標籤"
       ],
       "filename_patterns": [
         "sample[\\s_-]?part",
         "production[\\s_-]?sample",
         "sample[\\s_-]?tag",
-        "sample[\\s_-]?list"
+        "sample[\\s_-]?list",
+        "生产件样品",
+        "生產件樣品",
+        "样件",
+        "樣件"
       ],
       "priority": "medium",
       "physical_artifact": true,
@@ -814,16 +1190,32 @@
         "sample label",
         "packing list",
         "shipped samples",
-        "sample submission"
+        "sample submission",
+        "样品数量",
+        "樣品數量",
+        "装箱单",
+        "裝箱單",
+        "样品提交",
+        "樣品提交"
       ],
       "unique_markers": [
         "sample production parts",
         "sample parts",
         "production sample",
-        "sample tag"
+        "sample tag",
+        "生产件样品",
+        "生產件樣品",
+        "样品标签",
+        "樣品標籤"
       ],
       "exclude_markers": [
-        "master sample"
+        "master sample",
+        "标准样品",
+        "標準樣品",
+        "主样品",
+        "主樣品",
+        "金样",
+        "金樣"
       ],
       "continuation_markers": [
         "sample qty",
@@ -831,9 +1223,9 @@
         "tag no",
         "packing list"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.14: Sample production parts must be provided as requested by the customer; documentation alone does not replace the parts.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.14: Sample production parts must be provided as requested by the customer; documentation alone does not replace the parts.",
       "good": "Actual parts (and tags/packing list) as requested",
-      "watch_outs": "Physical artifact \u2014 PDF is not the part",
+      "watch_outs": "Physical artifact — PDF is not the part",
       "sqe_checks": [
         "Sample production parts are available for inspection",
         "Sample tags/packing list match submission quantity"
@@ -843,10 +1235,18 @@
       "number": 15,
       "name": "Master Sample",
       "aliases": [
-        "master sample"
+        "master sample",
+        "标准样品",
+        "標準樣品",
+        "主样品",
+        "主樣品"
       ],
       "filename_patterns": [
-        "master[\\s_-]?sample"
+        "master[\\s_-]?sample",
+        "标准样品",
+        "標準樣品",
+        "主样品",
+        "主樣品"
       ],
       "priority": "low",
       "physical_artifact": true,
@@ -855,12 +1255,21 @@
         "retained master",
         "master sample agreement",
         "customer signed master",
-        "master sample retention"
+        "master sample retention",
+        "留样",
+        "留樣",
+        "标准样品协议",
+        "標準樣品協議",
+        "存放位置"
       ],
       "unique_markers": [
         "master sample",
         "retained master",
-        "master sample agreement"
+        "master sample agreement",
+        "标准样品",
+        "標準樣品",
+        "主样品",
+        "主樣品"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -868,7 +1277,7 @@
         "retained",
         "storage location"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.15: A master sample shall be retained when required by the customer or the organization, and identified as such.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.15: A master sample shall be retained when required by the customer or the organization, and identified as such.",
       "good": "Retained and identified when required",
       "watch_outs": "Confused with production samples",
       "sqe_checks": [
@@ -883,14 +1292,24 @@
         "checking aid",
         "fixture",
         "go no-go",
-        "template"
+        "template",
+        "检验辅具",
+        "檢驗輔具",
+        "检具",
+        "檢具",
+        "通止规",
+        "通止規"
       ],
       "filename_patterns": [
         "checking[\\s_-]?aid",
         "\\bfixture\\b",
         "go[\\s_-]?no[\\s_-]?go",
         "check[\\s_-]?gauge",
-        "inspection[\\s_-]?template"
+        "inspection[\\s_-]?template",
+        "检验辅具",
+        "檢驗輔具",
+        "检具",
+        "檢具"
       ],
       "priority": "low",
       "physical_artifact": true,
@@ -906,14 +1325,26 @@
         "inspection template",
         "poke yoke",
         "poka yoke",
-        "checking aid number"
+        "checking aid number",
+        "检具编号",
+        "檢具編號",
+        "校准",
+        "校準",
+        "夹具",
+        "夾具"
       ],
       "unique_markers": [
         "checking aid",
         "checking fixture",
         "go/no-go",
         "go no-go",
-        "inspection fixture"
+        "inspection fixture",
+        "检验辅具",
+        "檢驗輔具",
+        "检具",
+        "檢具",
+        "通止规",
+        "通止規"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -922,7 +1353,7 @@
         "calibration",
         "checking aid"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.16: Checking aids (fixtures, templates, variable and attribute gauges) shall be certified to design records if used.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.16: Checking aids (fixtures, templates, variable and attribute gauges) shall be certified to design records if used.",
       "good": "Fixtures/templates/gauges certified to design records",
       "watch_outs": "Physical artifact; uncalibrated aids",
       "sqe_checks": [
@@ -936,13 +1367,21 @@
       "aliases": [
         "csr",
         "customer specific",
-        "oem requirement"
+        "oem requirement",
+        "顾客特殊要求",
+        "顧客特殊要求",
+        "客户特殊要求",
+        "客戶特殊要求"
       ],
       "filename_patterns": [
         "\\bcsr\\b",
         "customer[\\s_-]?specific",
         "oem[\\s_-]?requirement",
-        "customer[\\s_-]?checklist"
+        "customer[\\s_-]?checklist",
+        "顾客特殊要求",
+        "顧客特殊要求",
+        "客户特殊要求",
+        "客戶特殊要求"
       ],
       "priority": "high",
       "physical_artifact": false,
@@ -956,13 +1395,22 @@
         "stellantis",
         "iatf",
         "customer checklist",
-        "oem addendum"
+        "oem addendum",
+        "顾客要求",
+        "顧客要求",
+        "主机厂",
+        "主機廠",
+        "附加要求"
       ],
       "unique_markers": [
         "customer specific requirement",
         "customer-specific",
         "csr",
-        "oem requirement"
+        "oem requirement",
+        "顾客特殊要求",
+        "顧客特殊要求",
+        "客户特殊要求",
+        "客戶特殊要求"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -971,7 +1419,7 @@
         "customer requirement",
         "checklist"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.17: The organization shall meet all applicable customer-specific requirements and provide evidence in the submission.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.17: The organization shall meet all applicable customer-specific requirements and provide evidence in the submission.",
       "good": "CSR checklist + evidence (OEM addenda)",
       "watch_outs": "Generic ISO cert offered as CSR",
       "sqe_checks": [
@@ -985,12 +1433,22 @@
       "aliases": [
         "psw",
         "part submission warrant",
-        "warrant"
+        "warrant",
+        "零件提交保证书",
+        "零件提交保證書",
+        "提交保证书",
+        "提交保證書",
+        "保证书",
+        "保證書"
       ],
       "filename_patterns": [
         "\\bpsw\\b",
         "part[\\s_-]?submission[\\s_-]?warrant",
-        "submission[\\s_-]?warrant"
+        "submission[\\s_-]?warrant",
+        "零件提交保证书",
+        "零件提交保證書",
+        "保证书",
+        "保證書"
       ],
       "priority": "critical",
       "physical_artifact": false,
@@ -1012,14 +1470,32 @@
         "dies",
         "materials reporting",
         "part name",
-        "part number"
+        "part number",
+        "声明",
+        "聲明",
+        "零件名称",
+        "零件名稱",
+        "零件号",
+        "零件號",
+        "采购订单",
+        "採購訂單",
+        "提交等级",
+        "提交等級",
+        "供应商授权签字",
+        "供應商授權簽字"
       ],
       "unique_markers": [
         "part submission warrant",
         "psw",
         "supplier authorized signature",
         "submission warrant",
-        "submission level"
+        "submission level",
+        "零件提交保证书",
+        "零件提交保證書",
+        "供应商授权签字",
+        "供應商授權簽字",
+        "提交等级",
+        "提交等級"
       ],
       "exclude_markers": [],
       "continuation_markers": [
@@ -1029,7 +1505,7 @@
         "part number",
         "warrant"
       ],
-      "aiag_rule": "AIAG PPAP 4th Ed. \u00a72.2.18: A completed Part Submission Warrant (PSW) is required, signed by the supplier, with correct part data and submission level.",
+      "aiag_rule": "AIAG PPAP 4th Ed. §2.2.18: A completed Part Submission Warrant (PSW) is required, signed by the supplier, with correct part data and submission level.",
       "good": "Signed warrant; correct part, rev, level, reason, results",
       "watch_outs": "Critical. Checklist of 18 on the PSW is not those elements",
       "sqe_checks": [

@@ -4,9 +4,9 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .report import format_console_summary, write_all_reports
+from .report import format_console_summary, write_package_reports
 from .scanner import scan_inbox
-from .triage import triage_inbox
+from .triage import triage_packages
 
 
 @dataclass
@@ -87,22 +87,25 @@ def watch_inbox(
         )
 
         if signature != last_signature:
-            report = triage_inbox(
+            results = triage_packages(
                 inbox_path,
-                recursive=recursive,
                 use_pdf_text=use_pdf_text,
                 pdf_max_pages=pdf_max_pages,
                 layout_mode=layout_mode,
             )
-            outputs = write_all_reports(report, output_dir)
-            timestamp = report.scanned_at.replace("T", " ").split("+")[0]
+            written = write_package_reports(results, output_dir)
+            timestamp = written[0]["report"].scanned_at.replace("T", " ").split("+")[0]
             print(f"\n[{timestamp} UTC] Inbox change detected")
-            print(format_console_summary(report))
-            print("Reports written:")
-            for name, path in outputs.items():
-                print(f"  {name}: {path}")
-            if "sqe_checklist" in outputs:
-                print("SQE review: open sqe-checklist.md for binder page references")
+            print(f"Detected {len(written)} independent submission(s)")
+            for item in written:
+                report = item["report"]
+                outputs = item["outputs"]
+                print(format_console_summary(report))
+                print("Reports written:")
+                for name, path in outputs.items():
+                    print(f"  {name}: {path}")
+                if "sqe_checklist" in outputs:
+                    print("SQE review: open sqe-checklist.md for binder page references")
             last_signature = signature
 
         if run_once:

@@ -34,6 +34,34 @@ def _element_name(element: object) -> str:
     return element_display_name(_lang(), int(getattr(element, "number")), str(getattr(element, "name")))
 
 
+def _apply_language(code: str) -> None:
+    if st.session_state.get("ui_language") == code:
+        return
+    st.session_state.ui_language = code
+    st.rerun()
+
+
+def _render_language_buttons(key_prefix: str) -> None:
+    current = _lang()
+    english_col, chinese_col = st.columns(2)
+    with english_col:
+        if st.button(
+            "English",
+            key=f"{key_prefix}_en",
+            use_container_width=True,
+            type="primary" if current == "en" else "secondary",
+        ):
+            _apply_language("en")
+    with chinese_col:
+        if st.button(
+            "中文",
+            key=f"{key_prefix}_zh",
+            use_container_width=True,
+            type="primary" if current == "zh" else "secondary",
+        ):
+            _apply_language("zh")
+
+
 def _match_evidence(match: object) -> tuple[str, ...]:
     """Compatible with older ElementMatch objects that lack an evidence field."""
     raw = getattr(match, "evidence", ())
@@ -257,19 +285,14 @@ def main() -> None:
         layout="wide",
     )
 
-    language_label = st.sidebar.selectbox(
-        "Language / 语言",
-        ["English", "中文"],
-        index=1 if st.session_state.get("ui_language") == "zh" else 0,
-        key="ui_language_label",
-    )
-    st.session_state.ui_language = "zh" if language_label == "中文" else "en"
-
-    st.title(_t("title"))
-    st.caption(_t("caption"))
-    st.caption(_t("ocr_note"))
+    if "ui_language" not in st.session_state:
+        st.session_state.ui_language = "en"
 
     with st.sidebar:
+        st.markdown(f"**{_t('language')}**")
+        _render_language_buttons("sidebar_lang")
+        st.caption(_t("language_help"))
+        st.divider()
         st.header(_t("inbox_settings"))
         inbox_path = st.text_input(_t("inbox_folder"), value=DEFAULT_INBOX)
         output_dir = st.text_input(_t("output_folder"), value=DEFAULT_OUTPUT)
@@ -290,6 +313,17 @@ def main() -> None:
         st.markdown(f"**{_t('rules')}:** {meta['title']}")
         st.caption(Path(meta["source_path"]).name if meta["source_path"] else _t("skill_rules_file"))
         st.markdown(f"**Tip:** {_t('tip')}")
+
+    title_col, lang_col = st.columns([3.4, 1.6])
+    with title_col:
+        st.title(_t("title"))
+    with lang_col:
+        st.markdown(f"**{_t('language')}**")
+        _render_language_buttons("main_lang")
+        st.caption(_t("language_help"))
+
+    st.caption(_t("caption"))
+    st.caption(_t("ocr_note"))
 
     inbox = Path(inbox_path)
     output = Path(output_dir)

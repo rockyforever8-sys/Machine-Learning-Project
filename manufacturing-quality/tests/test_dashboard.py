@@ -35,3 +35,14 @@ class DashboardImportTests(unittest.TestCase):
         self.assertEqual(module.element_display_name("zh", 6, "Process FMEA"), "过程FMEA")
         self.assertEqual(module.element_display_name("en", 6, "Process FMEA"), "Process FMEA")
         self.assertEqual(module.element_status_label("zh", "missing"), "缺失")
+        self.assertIn("中文", module.ui_text("en", "language_help"))
+
+    def test_language_buttons_are_in_the_dashboard(self) -> None:
+        app_source = (Path(__file__).resolve().parents[1] / "dashboard" / "app.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('_render_language_buttons("main_lang")', app_source)
+        self.assertIn('_render_language_buttons("sidebar_lang")', app_source)
+        self.assertIn('"English"', app_source)
+        self.assertIn('"中文"', app_source)
+        self.assertIn("def _render_language_buttons", app_source)

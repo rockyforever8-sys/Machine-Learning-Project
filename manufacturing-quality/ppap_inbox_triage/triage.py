@@ -8,6 +8,7 @@ from typing import Any
 from .binder import find_index_pages
 from .classifier import classify_binder_pdf, classify_file, content_element_hits
 from .elements import CRITICAL_ELEMENT_NUMBERS, PPAP_LEVEL_3_ELEMENTS
+from .skill_loader import skill_metadata
 from .layout import (
     count_discrete_files,
     detect_submission_layout,
@@ -301,13 +302,14 @@ def triage_inbox(
                         evidence.append(item)
             if evidence:
                 notes.append("AIAG content evidence: " + ", ".join(evidence[:8]))
-            aiag_rule = getattr(element, "aiag_rule", "")
-            if aiag_rule:
-                notes.append(aiag_rule)
             binder_element_count += 1
         elif content_matches:
             notes.append("Classified using PDF text content")
             content_classified_count += 1
+
+        aiag_rule = getattr(element, "aiag_rule", "")
+        if aiag_rule:
+            notes.append(aiag_rule)
 
         element_triages.append(
             ElementTriage(
@@ -355,6 +357,7 @@ def triage_inbox(
     skipped_index_pages = sorted(
         {page for pages in index_pages_by_file.values() for page in pages}
     )
+    skill = skill_metadata()
 
     summary: dict[str, Any] = {
         "files_scanned": len(inbox_files),
@@ -373,6 +376,10 @@ def triage_inbox(
         "binder_files": sorted(binder_files),
         "binder_pages_with_text": binder_pages_with_text,
         "index_pages_skipped": skipped_index_pages,
+        "skill_name": skill["skill_name"],
+        "skill_title": skill["title"],
+        "skill_source": skill["source_path"],
+        "submission_level_default": skill["default_submission_level"],
     }
 
     actions = _build_actions(

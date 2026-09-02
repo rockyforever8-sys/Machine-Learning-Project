@@ -3,81 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from .models import ElementMatch, ElementTriage, TriageReport
+from .skill_loader import sqe_checks_by_element
 
-SQE_VERIFICATION_CHECKS: dict[int, tuple[str, ...]] = {
-    1: (
-        "Drawing revision matches part number and submission date",
-        "Specifications are current, legible, and customer-approved",
-    ),
-    2: (
-        "ECN/ECO included or documented as not applicable",
-        "Change level matches production intent",
-    ),
-    3: (
-        "Customer engineering approval or deviation permit is signed",
-        "Approval covers this part number and revision",
-    ),
-    4: (
-        "DFMEA is complete with team signature and date",
-        "High RPN items have documented actions",
-    ),
-    5: (
-        "Process flow matches actual manufacturing routing",
-        "Flow links to PFMEA and Control Plan",
-    ),
-    6: (
-        "PFMEA is current revision with production controls identified",
-        "Special characteristics are called out",
-    ),
-    7: (
-        "Control Plan matches PFMEA and current production process",
-        "Reaction plans and sampling frequency are defined",
-    ),
-    8: (
-        "MSA/Gage R&R results meet customer acceptance criteria",
-        "Studies cover gauges used for SC characteristics",
-    ),
-    9: (
-        "Dimensional results cover all drawing requirements",
-        "FAI/layout inspection is complete and signed",
-    ),
-    10: (
-        "Material and performance test results meet spec",
-        "Test reports are from acceptable date range",
-    ),
-    11: (
-        "Initial process capability studies meet Cpk/Ppk requirement",
-        "SPC method and subgroup size are appropriate",
-    ),
-    12: (
-        "Laboratory accreditation is valid and in scope",
-        "Test methods are covered by accreditation",
-    ),
-    13: (
-        "Appearance approval is signed if required for this part",
-        "Color/master references are identified",
-    ),
-    14: (
-        "Sample production parts are available for inspection",
-        "Sample tags/packing list match submission quantity",
-    ),
-    15: (
-        "Master sample agreement is documented if required",
-        "Storage and control method is defined",
-    ),
-    16: (
-        "Checking aids/fixtures are identified and controlled",
-        "Calibration or verification records are available",
-    ),
-    17: (
-        "Customer-specific requirements checklist is complete",
-        "OEM addenda are addressed with evidence",
-    ),
-    18: (
-        "PSW is signed with correct submission level and part data",
-        "PSW matches all supporting documentation",
-    ),
-}
+SQE_VERIFICATION_CHECKS: dict[int, tuple[str, ...]] = sqe_checks_by_element()
 
 
 def collect_page_numbers(matches: list[ElementMatch]) -> list[int]:

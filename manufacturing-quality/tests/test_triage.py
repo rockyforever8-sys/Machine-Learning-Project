@@ -123,6 +123,36 @@ class ClassifierTests(unittest.TestCase):
         self.assertTrue(is_binder_filename("全套PPAP资料.pdf"))
         self.assertTrue(is_binder_filename("PPAP Level 3_binder.pdf"))
 
+    def test_psw_checklist_does_not_count_as_design_records(self) -> None:
+        file = InboxFile(
+            path=Path("0044-G22C615XX0025 PSW..pdf"),
+            relative_path="0044-G22C615XX0025 D002 606146/0044-G22C615XX0025 PSW..pdf",
+            name="0044-G22C615XX0025 PSW..pdf",
+            suffix=".pdf",
+            size_bytes=1,
+        )
+        psw_text = """
+Part Submission Warrant
+Part Name: Bracket  Part Number: 0044-G22C615XX0025
+Engineering drawing change level: A
+Shown on drawing number: 0044-G22C615XX0025
+Purchase order no: PO-9921
+Submission level: Level 3
+Declaration: I hereby warrant the samples represented by this warrant
+Supplier authorized signature: J. Supplier
+The following documents are attached:
+1. Design Records
+2. Engineering Change Documents
+4. Design FMEA
+6. Process FMEA
+7. Control Plan
+18. Part Submission Warrant
+"""
+        matches = classify_file(file, text_content=psw_text)
+        self.assertTrue(matches)
+        self.assertEqual(matches[0].element.number, 18)
+        self.assertFalse(any(match.element.number == 1 for match in matches))
+
 
 @unittest.skipUnless(pdf_text_available(), "pypdf is required for PDF extraction tests")
 class PdfTextTests(unittest.TestCase):
@@ -183,6 +213,38 @@ class PdfTextTests(unittest.TestCase):
                 markdown = outputs["markdown"].read_text(encoding="utf-8")
                 self.assertIn("Binder Page Index", markdown)
                 self.assertIn("| Pages |", markdown)
+
+    def test_psw_file_is_not_a_design_record_duplicate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir)
+            write_text_pdf(
+                inbox / "0044-G22C615XX0025 PSW..pdf",
+                """
+Part Submission Warrant
+Engineering drawing change level: A
+Shown on drawing number: 0044-G22C615XX0025
+Submission level: Level 3
+Declaration: I hereby warrant the samples
+Supplier authorized signature: J. Supplier
+1. Design Records
+2. Engineering Change Documents
+6. Process FMEA
+7. Control Plan
+18. Part Submission Warrant
+""",
+            )
+            write_text_pdf(
+                inbox / "01_Drawing.pdf",
+                "Design Records drawing number 0044-G22C615XX0025 title block revision A engineering drawing scale 1:1",
+            )
+            report = triage_inbox(inbox, use_pdf_text=True, layout_mode="discrete")
+            design = next(item for item in report.elements if item.element.number == 1)
+            psw = next(item for item in report.elements if item.element.number == 18)
+            self.assertEqual(design.status, "present")
+            self.assertEqual(psw.status, "present")
+            self.assertTrue(any("PSW" in match.file.name for match in psw.matches))
+            self.assertFalse(any("PSW" in match.file.name for match in design.matches))
+            self.assertTrue(any("Drawing" in match.file.name for match in design.matches))
 
 
 class ScannerTests(unittest.TestCase):

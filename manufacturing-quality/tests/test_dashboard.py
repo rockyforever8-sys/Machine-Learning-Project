@@ -41,8 +41,7 @@ class DashboardImportTests(unittest.TestCase):
         app_source = (Path(__file__).resolve().parents[1] / "dashboard" / "app.py").read_text(
             encoding="utf-8"
         )
-        self.assertIn('_render_language_buttons("main_lang")', app_source)
         self.assertIn('_render_language_buttons("sidebar_lang")', app_source)
-        self.assertIn('"English"', app_source)
+        self.assertIn("st.radio", app_source)
         self.assertIn('"中文"', app_source)
         self.assertIn("def _render_language_buttons", app_source)

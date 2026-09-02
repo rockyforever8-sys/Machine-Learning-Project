@@ -42,24 +42,15 @@ def _apply_language(code: str) -> None:
 
 
 def _render_language_buttons(key_prefix: str) -> None:
-    current = _lang()
-    english_col, chinese_col = st.columns(2)
-    with english_col:
-        if st.button(
-            "English",
-            key=f"{key_prefix}_en",
-            use_container_width=True,
-            type="primary" if current == "en" else "secondary",
-        ):
-            _apply_language("en")
-    with chinese_col:
-        if st.button(
-            "中文",
-            key=f"{key_prefix}_zh",
-            use_container_width=True,
-            type="primary" if current == "zh" else "secondary",
-        ):
-            _apply_language("zh")
+    current = "中文" if _lang() == "zh" else "English"
+    choice = st.radio(
+        _t("language"),
+        ["English", "中文"],
+        index=1 if current == "中文" else 0,
+        horizontal=True,
+        key=f"{key_prefix}_radio",
+    )
+    _apply_language("zh" if choice == "中文" else "en")
 
 
 def _match_evidence(match: object) -> tuple[str, ...]:
@@ -168,7 +159,14 @@ def _render_metrics(report) -> None:
 def _render_element_table(report) -> None:
     rows = []
     for triage in report.elements:
-        primary = triage.matches[0].file.relative_path if triage.matches else "—"
+        primary = "—"
+        if triage.matches:
+            unique_files: list[str] = []
+            for match in triage.matches:
+                path = match.file.relative_path
+                if path not in unique_files:
+                    unique_files.append(path)
+            primary = "; ".join(unique_files[:4])
         evidence: list[str] = []
         for match in triage.matches:
             for item in _match_evidence(match):
@@ -289,7 +287,6 @@ def main() -> None:
         st.session_state.ui_language = "en"
 
     with st.sidebar:
-        st.markdown(f"**{_t('language')}**")
         _render_language_buttons("sidebar_lang")
         st.caption(_t("language_help"))
         st.divider()
@@ -314,14 +311,7 @@ def main() -> None:
         st.caption(Path(meta["source_path"]).name if meta["source_path"] else _t("skill_rules_file"))
         st.markdown(f"**Tip:** {_t('tip')}")
 
-    title_col, lang_col = st.columns([3.4, 1.6])
-    with title_col:
-        st.title(_t("title"))
-    with lang_col:
-        st.markdown(f"**{_t('language')}**")
-        _render_language_buttons("main_lang")
-        st.caption(_t("language_help"))
-
+    st.title(_t("title"))
     st.caption(_t("caption"))
     st.caption(_t("ocr_note"))
 

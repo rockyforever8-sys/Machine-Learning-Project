@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import re
 
-from .binder import classify_binder_pages, compact_text, has_cjk, marker_present
+from .binder import (
+    classify_binder_pages,
+    compact_text,
+    has_cjk,
+    is_index_page,
+    is_psw_form,
+    marker_present,
+)
 from .elements import PPAP_LEVEL_3_ELEMENTS
 from .models import ElementMatch, InboxFile, MatchConfidence, PpapElement
 
@@ -164,6 +171,27 @@ def _merge_matches(*match_groups: list[ElementMatch]) -> list[ElementMatch]:
     )
 
 
+def _looks_like_psw_filename(filename: str) -> bool:
+    normalized = _normalize(filename)
+    compact = compact_text(normalized)
+    return any(
+        marker_present(normalized, compact, marker)
+        for marker in (
+            "psw",
+            "part submission warrant",
+            "零件提交保证书",
+            "零件提交保證書",
+            "提交保证书",
+            "提交保證書",
+        )
+    )
+
+
+def _keep_psw_matches(matches: list[ElementMatch]) -> list[ElementMatch]:
+    psw_matches = [match for match in matches if match.element.number == 18]
+    return psw_matches or matches
+
+
 def classify_file(
     file: InboxFile,
     *,
@@ -172,6 +200,7 @@ def classify_file(
 ) -> list[ElementMatch]:
     normalized_name = _normalize(file.name)
     prefix_number = _ppap_prefix_number(file.name)
+    psw_filename = _looks_like_psw_filename(file.name)
 
     filename_matches = _classify_normalized_text(
         file,
@@ -180,17 +209,37 @@ def classify_file(
         prefix_number=prefix_number,
         apply_prefix_rules=True,
     )
+    if psw_filename:
+        filename_matches = _keep_psw_matches(filename_matches)
 
     content_groups: list[list[ElementMatch]] = []
+    psw_form = False
     if text_content:
-        content_groups.append(
-            _classify_normalized_text(
-                file,
-                _normalize(text_content),
-                source="content",
-                apply_prefix_rules=False,
+        normalized_content = _normalize(text_content)
+        compact_content = compact_text(normalized_content)
+        psw_form = is_psw_form(normalized_content, compact_content)
+        # A PSW attached-document list (or other TOC) names every element.
+        # That checklist is not evidence that those documents are in this file.
+        if psw_form:
+            content_groups.append(
+                _keep_psw_matches(
+                    _classify_normalized_text(
+                        file,
+                        normalized_content,
+                        source="content",
+                        apply_prefix_rules=False,
+                    )
+                )
             )
-        )
+        elif not is_index_page(text_content, normalized_content):
+            content_groups.append(
+                _classify_normalized_text(
+                    file,
+                    normalized_content,
+                    source="content",
+                    apply_prefix_rules=False,
+                )
+            )
 
     if page_texts:
         for page_number, page_text in page_texts:
@@ -207,7 +256,10 @@ def classify_file(
     if not content_groups:
         return filename_matches
 
-    return _merge_matches(filename_matches, *content_groups)
+    merged = _merge_matches(filename_matches, *content_groups)
+    if psw_filename or psw_form:
+        return _keep_psw_matches(merged)
+    return merged
 
 
 def content_element_hits(matches: list[ElementMatch]) -> set[int]:

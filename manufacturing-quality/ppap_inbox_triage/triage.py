@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .binder import find_index_pages
-from .classifier import classify_binder_pdf, classify_file, content_element_hits
+from .classifier import classify_binder_pdf, classify_file, content_element_hits, _looks_like_psw_filename
 from .elements import CRITICAL_ELEMENT_NUMBERS, PPAP_LEVEL_3_ELEMENTS
 from .skill_loader import skill_metadata
 from .layout import (
@@ -42,9 +42,7 @@ def _element_status(
         match for match in matches if match.confidence != MatchConfidence.LOW
     ]
     if not strong_matches:
-        if len(matches) == 1:
-            return "review"
-        return "duplicate"
+        return "review"
 
     source_files = {match.file.relative_path for match in strong_matches}
     non_binder_files = {path for path in source_files if path not in binder_files}
@@ -150,7 +148,12 @@ def _assign_discrete_file(
         return
 
     top_match = file_matches[0]
-    if top_match.confidence == MatchConfidence.LOW and len(file_matches) > 1:
+    if _looks_like_psw_filename(inbox_file.name):
+        for match in file_matches:
+            if match.element.number == 18:
+                top_match = match
+                break
+    elif top_match.confidence == MatchConfidence.LOW and len(file_matches) > 1:
         for match in file_matches:
             if match.confidence != MatchConfidence.LOW:
                 top_match = match

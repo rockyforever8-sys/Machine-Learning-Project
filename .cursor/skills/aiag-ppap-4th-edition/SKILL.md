@@ -173,6 +173,7 @@ Supplier packages are often mixed English and Chinese (Simplified or Traditional
 
 - Element titles such as 设计记录 / 設計記錄, 过程FMEA / 過程FMEA, 控制计划 / 控制計劃, 零件提交保证书 / 零件提交保證書
 - A 目录 / 目錄 / 目次 page is a table of contents — skip it, same as English TOC
+- A PSW form listing 1–18 attached documents is **element 18 only**. Do not mark Design Records (or any other element) present or duplicate from that checklist.
 - PDF text may insert spaces between Chinese characters; match on compacted text
 - Chinese filenames such as `06_过程FMEA.pdf` / `控制计划.xlsx` / `零件提交保证书.pdf` and binder names such as `PPAP第3级提交.pdf`
 - Image-only scanned PDFs have no extractable text — OCR is required before classification

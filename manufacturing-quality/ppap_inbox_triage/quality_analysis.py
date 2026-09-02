@@ -93,12 +93,28 @@ GRR_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(?:测量系统|量具).{0,12}(?:grr|重复性).{0,20}(\d+(?:\.\d+)?)\s*%", re.I),
 )
 
-CPK_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\bcpk\b\s*[:=]?\s*(\d+(?:\.\d+)?)", re.I),
-    re.compile(r"\bppk\b\s*[:=]?\s*(\d+(?:\.\d+)?)", re.I),
-    re.compile(r"(\d+(?:\.\d+)?)\s*\bcpk\b", re.I),
-    re.compile(r"(\d+(?:\.\d+)?)\s*\bppk\b", re.I),
-    re.compile(r"过程能力指数\s*[:：]?\s*(\d+(?:\.\d+)?)", re.I),
+CPK_LABELED_PATTERN = re.compile(
+    r"\b(?P<label>cpk|ppk)\b\s*[:=]\s*(?P<value>\d+(?:\.\d+)?)",
+    re.I,
+)
+CPK_DECIMAL_AFTER_LABEL = re.compile(
+    r"\b(?P<label>cpk|ppk)\b\s+(?P<value>\d+\.\d+)",
+    re.I,
+)
+CPK_DECIMAL_BEFORE_LABEL = re.compile(
+    r"(?P<value>\d+\.\d+)\s*\b(?P<label>cpk|ppk)\b",
+    re.I,
+)
+CPK_CHINESE_PATTERN = re.compile(
+    r"过程能力指数\s*[:：]?\s*(?P<value>\d+(?:\.\d+)?)",
+    re.I,
+)
+
+CPK_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("labeled", CPK_LABELED_PATTERN),
+    ("decimal_after", CPK_DECIMAL_AFTER_LABEL),
+    ("decimal_before", CPK_DECIMAL_BEFORE_LABEL),
+    ("chinese", CPK_CHINESE_PATTERN),
 )
 
 RPN_ROW_PATTERN = re.compile(
@@ -130,12 +146,27 @@ def _extract_grr_values(text: str) -> list[tuple[float, str]]:
 
 def _extract_capability_values(text: str) -> list[tuple[str, float, str]]:
     hits: list[tuple[str, float, str]] = []
-    for pattern in CPK_PATTERNS:
+    seen: set[tuple[str, float, str]] = set()
+    for kind, pattern in CPK_PATTERNS:
         for match in pattern.finditer(text):
-            label = "Cpk" if "cpk" in match.group(0).lower() or "过程能力" in match.group(0) else "Ppk"
-            value = float(match.group(1))
-            if 0 < value <= 5:
-                hits.append((label, value, match.group(0).strip()[:80]))
+            if kind == "chinese":
+                label = "Cpk"
+            else:
+                label = "Cpk" if match.group("label").lower() == "cpk" else "Ppk"
+            value = float(match.group("value"))
+            if not (0 < value <= 5):
+                continue
+            # Skip "1.05 Ppk" parsed from "Cpk = 1.05 Ppk: 1.08" — value belongs to Cpk.
+            if kind == "decimal_before":
+                prefix = text[max(0, match.start() - 6) : match.start()]
+                if re.search(r"[:=]\s*$", prefix):
+                    continue
+            context = match.group(0).strip()[:80]
+            key = (label, value, context)
+            if key in seen:
+                continue
+            seen.add(key)
+            hits.append((label, value, context))
     return hits
 
 

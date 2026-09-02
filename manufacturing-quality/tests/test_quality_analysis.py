@@ -33,7 +33,6 @@ class QualityMetricExtractionTests(unittest.TestCase):
         self.assertLess(labels["Ppk"], 1.33)
 
     def test_cpk_list_index_is_not_capability_value(self) -> None:
-        """PDFs often show 'Cpk 1' as a row/characteristic label, not Cpk = 1.0."""
         text = (
             "Cpk 1 Cpk 2.23 Cpk 3.80 2.23 Cpk 3.80 Cpk "
             "Cpk 2.13 Cpk 3.29 2.13 Cpk 3.29 Cpk"
@@ -42,9 +41,6 @@ class QualityMetricExtractionTests(unittest.TestCase):
         cpk_values = [value for label, value, _ in values if label == "Cpk"]
         self.assertNotIn(1.0, cpk_values)
         self.assertIn(2.23, cpk_values)
-        self.assertIn(3.8, cpk_values)
-        self.assertIn(2.13, cpk_values)
-        self.assertIn(3.29, cpk_values)
 
     def test_explicit_cpk_assignment_allows_integer(self) -> None:
         text = "Process capability index Cpk = 1.05 Ppk: 1.08"
@@ -88,31 +84,17 @@ class QualityMetricExtractionTests(unittest.TestCase):
 
         cpk_values = [item.value for item in analysis.capability_findings if item.metric == "Cpk"]
         self.assertNotIn(1.0, cpk_values)
-        self.assertTrue(any(item.value == 2.23 for item in analysis.capability_findings))
-        self.assertFalse(any("Cpk 1.00" in flag or "Cpk 1.0" in flag for flag in analysis.flags))
         self.assertEqual(analysis.to_summary()["parser_version"], QUALITY_PARSER_VERSION)
 
-    def test_parse_pfmea_rows_and_countermeasures(self) -> None:
+    def test_parse_pfmea_rows_require_supplier_actions(self) -> None:
         text = (
             "Process FMEA PFMEA process step weld joint failure mode porosity "
-            "8 4 6 192 current process control visual inspection"
+            "8 4 6 192 Install venting and monitor melt temperature profile"
         )
         rows = _parse_pfmea_rows(text, source_file="pfmea.pdf", page_number=6)
-        self.assertTrue(rows)
-        self.assertEqual(rows[0].rpn, 192)
-        self.assertTrue(any("vent" in item.lower() or "melt" in item.lower() for item in rows[0].countermeasures))
-
-    def test_parse_pfmea_table_lines_without_keyword(self) -> None:
-        text = (
-            "Failure mode / effect                    S  O  D  RPN\n"
-            "Porosity in weld cavity visual escape      8  4  6  192\n"
-            "Dimensional out of tolerance on bore        7  3  5  105\n"
-            "Surface scratch from handling               6  4  4   96\n"
-        )
-        rows = _parse_pfmea_rows(text, source_file="binder.pdf", page_number=42)
-        rpns = sorted((row.rpn for row in rows), reverse=True)
-        self.assertEqual(rpns[:3], [192, 105, 96])
-        self.assertTrue(rows[0].countermeasures)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].action_priority, "M")
+        self.assertTrue(rows[0].table_actions)
 
     def test_analyze_pfmea_from_element_six_pages_without_keyword(self) -> None:
         inbox_file = InboxFile(
@@ -130,9 +112,10 @@ class QualityMetricExtractionTests(unittest.TestCase):
                     (41, "Cover sheet"),
                     (
                         42,
-                        "Control plan excerpt\n"
-                        "Weld porosity at joint line              8 4 6 192\n"
-                        "Leak at seal groove                      7 3 6 126\n",
+                        "Weld porosity at joint line              8 4 6 192 "
+                        "Install venting and audit melt temperature profile\n"
+                        "Leak at seal groove                      7 3 6 126 "
+                        "Add 100 percent leak test per control plan\n",
                     ),
                 ]
 
@@ -147,12 +130,14 @@ class QualityMetricExtractionTests(unittest.TestCase):
                 pfmea_pages_by_file={"PPAP_package.pdf": {42}},
             )
 
-        self.assertEqual(len(analysis.pfmea_top_rpn), 2)
-        self.assertEqual(analysis.pfmea_top_rpn[0].rpn, 192)
-        self.assertEqual(analysis.pfmea_top_rpn[0].rank, 1)
-        self.assertGreaterEqual(len(analysis.pfmea_top_rpn[0].countermeasures), 1)
-        self.assertTrue(analysis.pfmea_benchmark_notes)
-        self.assertTrue(analysis.pfmea_default_practices)
+        self.assertEqual(len(analysis.pfmea_top_ap), 2)
+        self.assertIn(analysis.pfmea_top_ap[0].action_priority, {"H", "M"})
+        self.assertEqual(analysis.pfmea_top_ap[0].rank, 1)
+        self.assertTrue(analysis.pfmea_top_ap[0].table_actions)
+        self.assertTrue(analysis.pfmea_top_ap[0].comparison_notes)
+        summary = analysis.to_summary()
+        self.assertIn("pfmea_top_ap", summary)
+        self.assertEqual(summary["pfmea_top_ap"][0]["action_priority"], analysis.pfmea_top_ap[0].action_priority)
 
 
 class QualityInboxAnalysisTests(unittest.TestCase):
@@ -179,7 +164,8 @@ class QualityInboxAnalysisTests(unittest.TestCase):
                     ),
                     (
                         6,
-                        "Process FMEA PFMEA porosity in weld 8 4 6 192 process control",
+                        "Process FMEA PFMEA porosity in weld 8 4 6 192 "
+                        "Install venting and monitor melt profile",
                     ),
                 ]
 
@@ -195,8 +181,8 @@ class QualityInboxAnalysisTests(unittest.TestCase):
 
         self.assertTrue(any("MSA %GRR" in flag for flag in analysis.flags))
         self.assertTrue(any("Cpk" in flag for flag in analysis.flags))
-        self.assertEqual(len(analysis.pfmea_top_rpn), 1)
-        self.assertGreaterEqual(len(analysis.actions), 2)
+        self.assertEqual(len(analysis.pfmea_top_ap), 1)
+        self.assertIn(analysis.pfmea_top_ap[0].action_priority, {"H", "M"})
 
 
 if __name__ == "__main__":

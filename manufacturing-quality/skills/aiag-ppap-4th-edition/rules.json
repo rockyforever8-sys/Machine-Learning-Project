@@ -1518,13 +1518,15 @@
     "msa_percent_grr_max": 10.0,
     "cpk_min": 1.33,
     "ppk_min": 1.33,
+    "pfmea_top_ap_limit": 5,
     "pfmea_top_rpn_limit": 5,
-    "pfmea_action_rpn_min": 100,
-    "pfmea_reduction_order": "Severity → Occurrence → Detection (AIAG FMEA priority)",
+    "pfmea_ranking_method": "AIAG/VDA 2019 Action Priority (H → M → L)",
+    "pfmea_reduction_order": "Severity → Occurrence → Detection within each AP band",
     "references": [
       "AIAG MSA 4th Ed.: %GRR <= 10% acceptable for most automotive gaging",
       "AIAG SPC / IATF 16949 industry practice: Cpk >= 1.33 for initial production studies on special characteristics",
-      "AIAG FMEA: prioritize reduction of Severity, then Occurrence, then Detection for high RPN items"
+      "AIAG & VDA FMEA Handbook (2019): use Action Priority H/M/L — rank H before M before L",
+      "AIAG FMEA: within each AP band, reduce Severity first, then Occurrence, then Detection"
     ]
   },
   "pfmea_countermeasure_playbook": {

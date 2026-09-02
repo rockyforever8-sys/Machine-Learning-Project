@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
 from ppap_inbox_triage.models import InboxFile
 from ppap_inbox_triage.quality_analysis import (
@@ -28,6 +29,27 @@ class QualityMetricExtractionTests(unittest.TestCase):
         labels = {label: value for label, value, _ in values}
         self.assertLess(labels["Cpk"], 1.33)
         self.assertLess(labels["Ppk"], 1.33)
+
+    def test_cpk_list_index_is_not_capability_value(self) -> None:
+        """PDFs often show 'Cpk 1' as a row/characteristic label, not Cpk = 1.0."""
+        text = (
+            "Cpk 1 Cpk 2.23 Cpk 3.80 2.23 Cpk 3.80 Cpk "
+            "Cpk 2.13 Cpk 3.29 2.13 Cpk 3.29 Cpk"
+        )
+        values = _extract_capability_values(text)
+        cpk_values = [value for label, value, _ in values if label == "Cpk"]
+        self.assertNotIn(1.0, cpk_values)
+        self.assertIn(2.23, cpk_values)
+        self.assertIn(3.8, cpk_values)
+        self.assertIn(2.13, cpk_values)
+        self.assertIn(3.29, cpk_values)
+
+    def test_explicit_cpk_assignment_allows_integer(self) -> None:
+        text = "Process capability index Cpk = 1.05 Ppk: 1.08"
+        values = _extract_capability_values(text)
+        labels = {label: value for label, value, _ in values}
+        self.assertEqual(labels["Cpk"], 1.05)
+        self.assertEqual(labels["Ppk"], 1.08)
 
     def test_parse_pfmea_rows_and_countermeasures(self) -> None:
         text = (
@@ -68,7 +90,7 @@ class QualityInboxAnalysisTests(unittest.TestCase):
                     ),
                 ]
 
-        with unittest.mock.patch(
+        with mock.patch(
             "ppap_inbox_triage.quality_analysis.extract_pdf_pages",
             FakePages.extract_pdf_pages,
         ):

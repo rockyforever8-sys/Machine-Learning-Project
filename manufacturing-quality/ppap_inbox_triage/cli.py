@@ -66,7 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--layout",
         choices=("auto", "discrete", "binder"),
         default="auto",
-        help="Submission layout strategy: auto-detect binder vs discrete files (default: auto).",
+        help="Submission layout: auto detects a binder PDF plus leftover discrete files (default: auto).",
     )
     _add_pdf_flags(triage_parser)
 
@@ -113,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--layout",
         choices=("auto", "discrete", "binder"),
         default="auto",
-        help="Submission layout strategy: auto-detect binder vs discrete files (default: auto).",
+        help="Submission layout: auto detects a binder PDF plus leftover discrete files (default: auto).",
     )
 
     return parser

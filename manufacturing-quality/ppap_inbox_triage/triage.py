@@ -13,6 +13,7 @@ from .layout import (
     count_discrete_files,
     detect_submission_layout,
     identify_binder_candidates,
+    leftover_files,
 )
 from .models import (
     ElementMatch,
@@ -384,6 +385,7 @@ def triage_inbox(
         "binder_classified_elements": binder_element_count,
         "submission_layout": submission_layout.value,
         "binder_files": sorted(binder_files),
+        "discrete_files": leftover_files(inbox_files, binder_files),
         "binder_pages_with_text": binder_pages_with_text,
         "image_only_binders": image_only_binders,
         "index_pages_skipped": skipped_index_pages,

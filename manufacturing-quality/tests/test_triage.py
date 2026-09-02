@@ -270,11 +270,14 @@ Supplier authorized signature: J. Supplier
             )
             (inbox / "1431-8YY0024 A.xlsx").write_text("x", encoding="utf-8")
 
-            report = triage_inbox(inbox, use_pdf_text=True)
-            self.assertIn(report.summary["submission_layout"], {"binder", "mixed"})
-            self.assertTrue(
-                any("PPAP_1431" in name for name in report.summary.get("binder_files", []))
-            )
+            report = triage_inbox(inbox, use_pdf_text=True, layout_mode="auto")
+            self.assertEqual(report.summary["submission_layout"], "mixed")
+            binder_files = report.summary.get("binder_files", [])
+            discrete_files = report.summary.get("discrete_files", [])
+            self.assertTrue(any("PPAP_1431" in name for name in binder_files))
+            self.assertFalse(any("PSW_" in name for name in binder_files))
+            self.assertTrue(any("PSW_" in name for name in discrete_files))
+            self.assertTrue(any(name.endswith(".xlsx") for name in discrete_files))
             present = {
                 item.element.number for item in report.elements if item.status == "present"
             }
@@ -283,6 +286,61 @@ Supplier authorized signature: J. Supplier
             self.assertIn(7, present)
             self.assertIn(18, present)
             self.assertGreater(report.summary["completeness_pct"], 0)
+
+    def test_auto_detects_tiny_ppap_named_pdf_next_to_psw(self) -> None:
+        """Cover-only PPAP_*.pdf must still be a binder; first pages have no element text."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir) / "1431-8YY0024 D008 611818"
+            inbox.mkdir()
+            write_multipage_text_pdf(
+                inbox / "PPAP_1431-8YY0024(A) from zhiye.pdf",
+                ["Cover page", "Supplier letter from zhiye", "Revision history"],
+            )
+            write_text_pdf(
+                inbox / "PSW_1431-8YY0024A_Approved.pdf",
+                "Part Submission Warrant PSW submission level supplier authorized signature declaration",
+            )
+            (inbox / "1431-8YY0024 A.xlsx").write_text("x", encoding="utf-8")
+
+            report = triage_inbox(inbox, use_pdf_text=True, layout_mode="auto")
+            self.assertEqual(report.summary["submission_layout"], "mixed")
+            binder_files = report.summary.get("binder_files", [])
+            self.assertEqual(len(binder_files), 1)
+            self.assertIn("PPAP_1431", binder_files[0])
+            self.assertFalse(any("PSW_" in name for name in binder_files))
+            psw = next(item for item in report.elements if item.element.number == 18)
+            self.assertEqual(psw.status, "present")
+            self.assertTrue(any("PSW_" in match.file.name for match in psw.matches))
+
+    def test_auto_detects_unnamed_companion_pdf_next_to_psw(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir)
+            write_multipage_text_pdf(
+                inbox / "1431-8YY0024(A) from zhiye.pdf",
+                [
+                    "Cover",
+                    "1. Design Records  Drawing number 1431-8YY0024 title block revision A engineering drawing scale 1:1",
+                    "6. Process FMEA  PFMEA process function current process control potential failure mode severity occurrence detection RPN",
+                    "7. Control Plan  production control plan reaction plan sample size sample frequency control method special characteristic",
+                ],
+            )
+            write_text_pdf(
+                inbox / "PSW_1431-8YY0024A_Approved.pdf",
+                "Part Submission Warrant PSW submission level supplier authorized signature declaration",
+            )
+
+            report = triage_inbox(inbox, use_pdf_text=True, layout_mode="auto")
+            self.assertEqual(report.summary["submission_layout"], "mixed")
+            binder_files = report.summary.get("binder_files", [])
+            self.assertTrue(any("from zhiye" in name for name in binder_files))
+            self.assertFalse(any(name.startswith("PSW_") or "/PSW_" in name for name in binder_files))
+            present = {
+                item.element.number for item in report.elements if item.status == "present"
+            }
+            self.assertIn(1, present)
+            self.assertIn(6, present)
+            self.assertIn(7, present)
+            self.assertIn(18, present)
 
 
 class ScannerTests(unittest.TestCase):

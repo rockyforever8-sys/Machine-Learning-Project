@@ -339,6 +339,11 @@ def _render_package_detail(item: dict[str, object], *, key_prefix: str, include_
             st.subheader(_t("binder_files"))
             for path in binder_files:
                 st.code(path)
+        discrete_files = report.summary.get("discrete_files", [])
+        if discrete_files:
+            st.subheader(_t("discrete_files"))
+            for path in discrete_files:
+                st.code(path)
 
         st.subheader(_t("console"))
         st.code(format_console_summary(report))
@@ -406,6 +411,7 @@ def main() -> None:
             ["auto", "binder", "discrete"],
             index=0,
             format_func=lambda value: _t(f"layout_{value}"),
+            help=_t("layout_help"),
         )
         auto_refresh = st.toggle(_t("auto_refresh"), value=False)
         refresh_seconds = st.number_input(_t("refresh_interval"), min_value=5, max_value=300, value=30)

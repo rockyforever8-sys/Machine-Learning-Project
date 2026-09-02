@@ -139,6 +139,9 @@ def write_markdown_report(report: TriageReport, output_path: Path) -> Path:
     binder_files = report.summary.get("binder_files", [])
     if binder_files:
         lines.append(f"- Binder files: {', '.join(f'`{path}`' for path in binder_files)}")
+    discrete_files = report.summary.get("discrete_files", [])
+    if discrete_files:
+        lines.append(f"- Discrete files: {', '.join(f'`{path}`' for path in discrete_files)}")
 
     skill_title = report.summary.get("skill_title")
     if skill_title:

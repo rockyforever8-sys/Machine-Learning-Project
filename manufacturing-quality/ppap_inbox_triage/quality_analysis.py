@@ -6,10 +6,17 @@ from typing import Any
 
 from .models import InboxFile
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
+from .pfmea_ap import (
+    benchmark_actions_for_failure_mode,
+    compare_table_vs_benchmark,
+    pfmea_action_priority,
+    pfmea_sort_key,
+    split_table_actions,
+)
 from .skill_loader import pfmea_countermeasure_playbook, quality_thresholds
 
 # Bump when capability/MSA/PFMEA parsing rules change — shown in the dashboard sidebar.
-QUALITY_PARSER_VERSION = "2026-09-02c"
+QUALITY_PARSER_VERSION = "2026-09-02d"
 
 
 @dataclass(frozen=True)
@@ -31,9 +38,12 @@ class PfmeaRow:
     occurrence: int
     detection: int
     rpn: int
+    action_priority: str
+    table_actions: tuple[str, ...]
+    benchmark_actions: tuple[str, ...]
+    comparison_notes: tuple[str, ...]
     source_file: str
     page_number: int | None = None
-    countermeasures: tuple[str, ...] = ()
     rank: int = 0
 
 
@@ -41,9 +51,9 @@ class PfmeaRow:
 class QualityAnalysis:
     msa_findings: list[MetricFinding] = field(default_factory=list)
     capability_findings: list[MetricFinding] = field(default_factory=list)
-    pfmea_top_rpn: list[PfmeaRow] = field(default_factory=list)
+    pfmea_top_ap: list[PfmeaRow] = field(default_factory=list)
     pfmea_benchmark_notes: list[str] = field(default_factory=list)
-    pfmea_reduction_order: str = "Severity → Occurrence → Detection"
+    pfmea_ranking_method: str = "AIAG/VDA 2019 Action Priority (H → M → L)"
     pfmea_default_practices: list[str] = field(default_factory=list)
     quality_blocking: bool = False
     flags: list[str] = field(default_factory=list)
@@ -78,6 +88,24 @@ class QualityAnalysis:
                 }
                 for item in self.capability_findings
             ],
+            "pfmea_top_ap": [
+                {
+                    "rank": row.rank,
+                    "failure_mode": row.failure_mode,
+                    "severity": row.severity,
+                    "occurrence": row.occurrence,
+                    "detection": row.detection,
+                    "rpn": row.rpn,
+                    "action_priority": row.action_priority,
+                    "table_actions": list(row.table_actions),
+                    "benchmark_actions": list(row.benchmark_actions),
+                    "comparison_notes": list(row.comparison_notes),
+                    "source_file": row.source_file,
+                    "page_number": row.page_number,
+                }
+                for row in self.pfmea_top_ap
+            ],
+            # Backward-compatible alias for older dashboard sessions.
             "pfmea_top_rpn": [
                 {
                     "rank": row.rank,
@@ -86,14 +114,18 @@ class QualityAnalysis:
                     "occurrence": row.occurrence,
                     "detection": row.detection,
                     "rpn": row.rpn,
+                    "action_priority": row.action_priority,
+                    "table_actions": list(row.table_actions),
+                    "benchmark_actions": list(row.benchmark_actions),
+                    "comparison_notes": list(row.comparison_notes),
+                    "countermeasures": list(row.benchmark_actions),
                     "source_file": row.source_file,
                     "page_number": row.page_number,
-                    "countermeasures": list(row.countermeasures),
                 }
-                for row in self.pfmea_top_rpn
+                for row in self.pfmea_top_ap
             ],
             "pfmea_benchmark_notes": list(self.pfmea_benchmark_notes),
-            "pfmea_reduction_order": self.pfmea_reduction_order,
+            "pfmea_ranking_method": self.pfmea_ranking_method,
             "pfmea_default_practices": list(self.pfmea_default_practices),
             "quality_blocking": self.quality_blocking,
             "flags": list(self.flags),
@@ -138,8 +170,14 @@ RPN_ROW_PATTERN = re.compile(
 )
 
 LINE_SOD_RPN_PATTERN = re.compile(
-    r"^(?P<mode>.{10,110}?)\s+(?P<sev>\d{1,2})\s+(?P<occ>\d{1,2})\s+(?P<det>\d{1,2})\s+(?P<rpn>\d{2,4})\s*$",
+    r"^(?P<mode>.{10,90}?)\s+(?P<sev>\d{1,2})\s+(?P<occ>\d{1,2})\s+(?P<det>\d{1,2})\s+(?P<rpn>\d{2,4})(?:\s+(?P<action>.+))?\s*$",
     re.M,
+)
+
+RECOMMENDED_ACTION_PATTERN = re.compile(
+    r"(?:recommended\s+actions?|actions?\s+taken|prevention\s+controls?|"
+    r"recommended\s+countermeasures?|措施|对策|建议措施)\s*[:：]\s*(?P<action>.{12,220})",
+    re.I,
 )
 
 SOD_RPN_TUPLE_PATTERN = re.compile(
@@ -225,22 +263,35 @@ def _make_pfmea_row(
     occurrence: int,
     detection: int,
     rpn: int,
+    table_actions: tuple[str, ...],
     source_file: str,
     page_number: int | None,
     playbook: dict[str, Any],
-) -> PfmeaRow:
+) -> PfmeaRow | None:
+    if not table_actions:
+        return None
     mode = re.sub(r"\s+", " ", failure_mode).strip(" -:;|")
     if len(mode) < 8:
         mode = f"PFMEA failure mode (RPN {rpn})"
+    ap = pfmea_action_priority(severity, occurrence, detection) if severity else "M"
+    benchmark = benchmark_actions_for_failure_mode(mode, playbook)
     return PfmeaRow(
         failure_mode=mode[:120],
         severity=severity,
         occurrence=occurrence,
         detection=detection,
         rpn=rpn,
+        action_priority=ap,
+        table_actions=table_actions,
+        benchmark_actions=benchmark,
+        comparison_notes=compare_table_vs_benchmark(
+            table_actions=table_actions,
+            benchmark_actions=benchmark,
+            failure_mode=mode,
+            action_priority=ap,
+        ),
         source_file=source_file,
         page_number=page_number,
-        countermeasures=_countermeasures_for_failure_mode(mode, playbook),
     )
 
 
@@ -296,7 +347,7 @@ def _extract_capability_values(text: str) -> list[tuple[str, float, str]]:
 def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -> list[PfmeaRow]:
     rows: list[PfmeaRow] = []
     playbook = pfmea_countermeasure_playbook()
-    seen: set[tuple[str, int]] = set()
+    seen: set[tuple[str, int, str]] = set()
 
     def add_row(
         *,
@@ -305,36 +356,60 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
         occurrence: int,
         detection: int,
         rpn: int,
+        table_action_text: str = "",
     ) -> None:
         if severity or occurrence or detection:
             if not _valid_sod_rpn(severity, occurrence, detection, rpn):
                 return
         elif rpn < 40:
             return
-        key = (failure_mode.lower()[:60], rpn)
+        table_actions = split_table_actions(table_action_text)
+        if not table_actions:
+            return
+        key = (failure_mode.lower()[:60], rpn, table_actions[0][:40])
         if key in seen:
             return
         seen.add(key)
-        rows.append(
-            _make_pfmea_row(
-                failure_mode=failure_mode,
-                severity=severity,
-                occurrence=occurrence,
-                detection=detection,
-                rpn=rpn,
-                source_file=source_file,
-                page_number=page_number,
-                playbook=playbook,
-            )
+        row = _make_pfmea_row(
+            failure_mode=failure_mode,
+            severity=severity,
+            occurrence=occurrence,
+            detection=detection,
+            rpn=rpn,
+            table_actions=table_actions,
+            source_file=source_file,
+            page_number=page_number,
+            playbook=playbook,
         )
+        if row:
+            rows.append(row)
+
+    for match in RECOMMENDED_ACTION_PATTERN.finditer(text):
+        action_text = match.group("action")
+        context_start = max(0, match.start() - 120)
+        context = text[context_start : match.start()]
+        tuple_match = SOD_RPN_TUPLE_PATTERN.search(context)
+        if tuple_match:
+            mode = context[: tuple_match.start()].strip(" -:;|")
+            add_row(
+                failure_mode=mode,
+                severity=int(tuple_match.group("sev")),
+                occurrence=int(tuple_match.group("occ")),
+                detection=int(tuple_match.group("det")),
+                rpn=int(tuple_match.group("rpn")),
+                table_action_text=action_text,
+            )
 
     for match in RPN_ROW_PATTERN.finditer(text):
+        end = match.end()
+        tail = text[end : end + 220].split("\n", 1)[0]
         add_row(
             failure_mode=match.group("mode"),
             severity=int(match.group("sev")),
             occurrence=int(match.group("occ")),
             detection=int(match.group("det")),
             rpn=int(match.group("rpn")),
+            table_action_text=tail,
         )
 
     for match in LINE_SOD_RPN_PATTERN.finditer(text):
@@ -344,6 +419,7 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
             occurrence=int(match.group("occ")),
             detection=int(match.group("det")),
             rpn=int(match.group("rpn")),
+            table_action_text=match.group("action") or "",
         )
 
     for line in text.splitlines():
@@ -354,48 +430,17 @@ def _parse_pfmea_rows(text: str, *, source_file: str, page_number: int | None) -
         if not tuple_match:
             continue
         mode = line[: tuple_match.start()].strip(" -:;|")
+        tail = line[tuple_match.end() :].strip()
         add_row(
             failure_mode=mode,
             severity=int(tuple_match.group("sev")),
             occurrence=int(tuple_match.group("occ")),
             detection=int(tuple_match.group("det")),
             rpn=int(tuple_match.group("rpn")),
+            table_action_text=tail,
         )
 
-    if not rows and RPN_INLINE_PATTERN.search(text):
-        for line in text.splitlines():
-            inline = RPN_INLINE_PATTERN.search(line)
-            if not inline:
-                continue
-            rpn = int(inline.group("rpn"))
-            if rpn < 40:
-                continue
-            mode = re.sub(r"\s+", " ", line[: inline.start()]).strip(" -:;|")
-            add_row(
-                failure_mode=mode,
-                severity=0,
-                occurrence=0,
-                detection=0,
-                rpn=rpn,
-            )
-
     return rows
-
-
-def _countermeasures_for_failure_mode(failure_mode: str, playbook: dict[str, Any]) -> tuple[str, ...]:
-    lowered = failure_mode.lower()
-    measures: list[str] = []
-    for entry in playbook.get("failure_mode_patterns", []):
-        keywords = [str(keyword).lower() for keyword in entry.get("keywords", [])]
-        if any(keyword in lowered for keyword in keywords):
-            for action in entry.get("countermeasures", []):
-                if action not in measures:
-                    measures.append(str(action))
-    for action in playbook.get("default_countermeasures", []):
-        if action not in measures:
-            measures.append(str(action))
-    top_n = int(playbook.get("countermeasure_limit", 5))
-    return tuple(measures[:top_n])
 
 
 def _collect_text_chunks(
@@ -427,17 +472,17 @@ def analyze_inbox_quality(
     grr_max = float(thresholds.get("msa_percent_grr_max", 10.0))
     cpk_min = float(thresholds.get("cpk_min", 1.33))
     ppk_min = float(thresholds.get("ppk_min", 1.33))
-    top_rpn_limit = int(thresholds.get("pfmea_top_rpn_limit", 5))
+    top_ap_limit = int(thresholds.get("pfmea_top_ap_limit", thresholds.get("pfmea_top_rpn_limit", 5)))
     pfmea_pages = pfmea_pages_by_file or {}
 
     analysis = QualityAnalysis()
     analysis.pfmea_benchmark_notes = [
         str(item) for item in thresholds.get("references", []) if item
     ]
-    analysis.pfmea_reduction_order = str(
+    analysis.pfmea_ranking_method = str(
         thresholds.get(
-            "pfmea_reduction_order",
-            "Severity → Occurrence → Detection (AIAG FMEA priority)",
+            "pfmea_ranking_method",
+            "AIAG/VDA 2019 Action Priority (H → M → L)",
         )
     )
     analysis.pfmea_default_practices = [
@@ -519,37 +564,36 @@ def analyze_inbox_quality(
                     )
                 )
 
-    pfmea_rows.sort(key=lambda row: (-row.rpn, row.failure_mode))
-    analysis.pfmea_top_rpn = []
-    for index, row in enumerate(pfmea_rows[:top_rpn_limit], start=1):
-        analysis.pfmea_top_rpn.append(
+    pfmea_rows.sort(key=pfmea_sort_key)
+    analysis.pfmea_top_ap = []
+    for index, row in enumerate(pfmea_rows[:top_ap_limit], start=1):
+        analysis.pfmea_top_ap.append(
             PfmeaRow(
                 failure_mode=row.failure_mode,
                 severity=row.severity,
                 occurrence=row.occurrence,
                 detection=row.detection,
                 rpn=row.rpn,
+                action_priority=row.action_priority,
+                table_actions=row.table_actions,
+                benchmark_actions=row.benchmark_actions,
+                comparison_notes=row.comparison_notes,
                 source_file=row.source_file,
                 page_number=row.page_number,
-                countermeasures=row.countermeasures,
                 rank=index,
             )
         )
 
-    if pfmea_pages and not analysis.pfmea_top_rpn:
-        pass  # Dashboard shows default PFMEA best practices when rows are not parseable.
-
-    for row in analysis.pfmea_top_rpn:
+    for row in analysis.pfmea_top_ap:
         analysis.flags.append(
-            f"PFMEA top RPN #{row.rank}: {row.failure_mode} (RPN {row.rpn}, "
-            f"S={row.severity} O={row.occurrence} D={row.detection})"
+            f"PFMEA AP {row.action_priority} #{row.rank}: {row.failure_mode} "
+            f"(S={row.severity} O={row.occurrence} D={row.detection}, RPN {row.rpn})"
         )
-        if row.rpn >= int(thresholds.get("pfmea_action_rpn_min", 100)):
+        if row.action_priority == "H":
             analysis.quality_blocking = True
             analysis.actions.append(
-                f"PFMEA RPN {row.rpn} (#{row.rank}) — reduce per AIAG priority "
-                f"({analysis.pfmea_reduction_order}): "
-                + "; ".join(row.countermeasures[:3])
+                f"PFMEA Action Priority H (#{row.rank}) — {row.failure_mode}: "
+                + "; ".join(row.table_actions[:2])
             )
 
     # De-duplicate actions while preserving order

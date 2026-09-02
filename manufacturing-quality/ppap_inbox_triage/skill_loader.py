@@ -78,9 +78,10 @@ def quality_thresholds() -> dict[str, Any]:
         "msa_percent_grr_max": 10.0,
         "cpk_min": 1.33,
         "ppk_min": 1.33,
+        "pfmea_top_ap_limit": 5,
         "pfmea_top_rpn_limit": 5,
-        "pfmea_action_rpn_min": 100,
-        "pfmea_reduction_order": "Severity → Occurrence → Detection (AIAG FMEA priority)",
+        "pfmea_ranking_method": "AIAG/VDA 2019 Action Priority (H → M → L)",
+        "pfmea_reduction_order": "Severity → Occurrence → Detection within each AP band",
     }
     payload = dict(rules.get("quality_thresholds") or {})
     merged = {**defaults, **payload}

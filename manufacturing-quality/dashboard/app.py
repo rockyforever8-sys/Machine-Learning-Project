@@ -293,7 +293,7 @@ def _render_quality_analysis(report) -> None:
     st.caption(f"{_t('quality_parser_version')}: `{parser_version}`")
     flags = payload.get("flags") or []
     if not flags and not payload.get("msa_findings") and not payload.get("capability_findings"):
-        if not payload.get("pfmea_top_rpn") and not payload.get("pfmea_default_practices"):
+        if not payload.get("pfmea_top_ap") and not payload.get("pfmea_top_rpn") and not payload.get("pfmea_default_practices"):
             st.info(_t("quality_none"))
             return
 
@@ -342,13 +342,13 @@ def _render_quality_analysis(report) -> None:
 def _render_pfmea_insights(payload: dict[str, object]) -> None:
     st.subheader(_t("quality_pfmea"))
     st.caption(_t("quality_pfmea_intro"))
-    reduction = payload.get("pfmea_reduction_order")
-    if reduction:
-        st.markdown(f"**{_t('quality_rpn_priority')}:** {reduction}")
+    ranking = payload.get("pfmea_ranking_method") or payload.get("pfmea_reduction_order")
+    if ranking:
+        st.markdown(f"**{_t('quality_ap_ranking')}:** {ranking}")
     for note in payload.get("pfmea_benchmark_notes", []):
         st.markdown(f"- {note}")
 
-    rows = payload.get("pfmea_top_rpn", [])
+    rows = payload.get("pfmea_top_ap") or payload.get("pfmea_top_rpn") or []
     if not rows:
         st.info(_t("quality_pfmea_none"))
         for index, practice in enumerate(payload.get("pfmea_default_practices", []), start=1):
@@ -357,19 +357,31 @@ def _render_pfmea_insights(payload: dict[str, object]) -> None:
 
     for item in rows:
         rank = item.get("rank") or "?"
+        ap = item.get("action_priority") or "—"
         title = str(item.get("failure_mode", "PFMEA item"))
         with st.expander(
-            f"#{rank} · RPN {item.get('rpn')} · {title[:72]}",
+            f"#{rank} · AP {ap} · {title[:64]}",
             expanded=int(rank) == 1 if str(rank).isdigit() else False,
         ):
             st.write(
                 f"**S/O/D:** {item.get('severity')}/{item.get('occurrence')}/{item.get('detection')} · "
+                f"**RPN:** {item.get('rpn')} · "
                 f"**{_t('col_file')}:** `{item.get('source_file')}` · "
                 f"**{_t('col_pages')}:** {item.get('page_number') or '—'}"
             )
-            st.markdown(f"**{_t('col_countermeasures')}**")
-            for index, measure in enumerate(item.get("countermeasures", []), start=1):
-                st.write(f"{index}. {measure}")
+            st.markdown(f"**{_t('col_table_actions')}**")
+            for index, action in enumerate(item.get("table_actions", []), start=1):
+                st.write(f"{index}. {action}")
+            st.markdown(f"**{_t('col_benchmark_actions')}**")
+            benchmark = item.get("benchmark_actions") or item.get("countermeasures") or []
+            if benchmark:
+                for index, action in enumerate(benchmark, start=1):
+                    st.write(f"{index}. {action}")
+            else:
+                st.caption(_t("quality_no_benchmark_match"))
+            st.markdown(f"**{_t('col_reasoning')}**")
+            for note in item.get("comparison_notes", []):
+                st.write(f"- {note}")
 
 
 def _render_packages_table(items: list[dict[str, object]]) -> None:

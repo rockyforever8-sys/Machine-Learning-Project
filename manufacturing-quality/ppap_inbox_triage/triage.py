@@ -235,6 +235,7 @@ def triage_inbox(
     file_matches_cache: dict[str, list[ElementMatch]] = {}
     index_pages_by_file: dict[str, list[int]] = {}
     binder_pages_with_text = 0
+    image_only_binders: list[str] = []
     for inbox_file in inbox_files:
         is_binder = inbox_file.relative_path in binder_files
         matches, page_texts = _classify_inbox_file(
@@ -244,6 +245,11 @@ def triage_inbox(
             binder_mode=is_binder,
         )
         file_matches_cache[inbox_file.relative_path] = matches
+        if is_binder:
+            from .pdf_text import pdf_page_count
+
+            if not page_texts and pdf_page_count(inbox_file.path) > 0:
+                image_only_binders.append(inbox_file.relative_path)
         if page_texts:
             index_pages_by_file[inbox_file.relative_path] = find_index_pages(page_texts)
             binder_pages_with_text += len(page_texts)
@@ -379,6 +385,7 @@ def triage_inbox(
         "submission_layout": submission_layout.value,
         "binder_files": sorted(binder_files),
         "binder_pages_with_text": binder_pages_with_text,
+        "image_only_binders": image_only_binders,
         "index_pages_skipped": skipped_index_pages,
         "skill_name": skill["skill_name"],
         "skill_title": skill["title"],
@@ -393,6 +400,13 @@ def triage_inbox(
         submission_layout=submission_layout,
         binder_files=binder_files,
     )
+    if image_only_binders:
+        names = ", ".join(f"`{name}`" for name in image_only_binders)
+        actions.insert(
+            0,
+            "PPAP package PDF has no extractable text (likely a scan). "
+            f"OCR is required to locate the 18 elements inside {names}",
+        )
     if skipped_index_pages:
         actions.insert(
             1 if actions else 0,

@@ -122,6 +122,9 @@ class ClassifierTests(unittest.TestCase):
         self.assertTrue(is_binder_filename("供应商PPAP卷宗.pdf"))
         self.assertTrue(is_binder_filename("全套PPAP资料.pdf"))
         self.assertTrue(is_binder_filename("PPAP Level 3_binder.pdf"))
+        self.assertTrue(is_binder_filename("PPAP_1431-8YY0024(A) from zhiye.pdf"))
+        self.assertTrue(is_binder_filename("PPAP_1431-8YY0024(A)\u00a0from\u00a0zhiye.pdf"))
+        self.assertFalse(is_binder_filename("PSW_1431-8YY0024A_Approved.pdf"))
 
     def test_psw_checklist_does_not_count_as_design_records(self) -> None:
         file = InboxFile(
@@ -245,6 +248,41 @@ Supplier authorized signature: J. Supplier
             self.assertTrue(any("PSW" in match.file.name for match in psw.matches))
             self.assertFalse(any("PSW" in match.file.name for match in design.matches))
             self.assertTrue(any("Drawing" in match.file.name for match in design.matches))
+
+    def test_ppap_named_package_pdf_is_scanned_as_binder(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir) / "1431-8YY0024 D008 611818"
+            inbox.mkdir()
+            write_multipage_text_pdf(
+                inbox / "PPAP_1431-8YY0024(A) from zhiye.pdf",
+                [
+                    "Cover PPAP Level 3 1431-8YY0024",
+                    "TABLE OF CONTENTS\n1. Design Records\n6. Process FMEA\n7. Control Plan\n18. Part Submission Warrant",
+                    "1. Design Records  Drawing number 1431-8YY0024 title block revision A engineering drawing scale 1:1",
+                    "6. Process FMEA  PFMEA process function current process control potential failure mode severity occurrence detection RPN",
+                    "7. Control Plan  production control plan reaction plan sample size sample frequency control method special characteristic",
+                    "18. Part Submission Warrant PSW submission level supplier authorized signature declaration",
+                ],
+            )
+            write_text_pdf(
+                inbox / "PSW_1431-8YY0024A_Approved.pdf",
+                "Part Submission Warrant PSW submission level supplier authorized signature declaration",
+            )
+            (inbox / "1431-8YY0024 A.xlsx").write_text("x", encoding="utf-8")
+
+            report = triage_inbox(inbox, use_pdf_text=True)
+            self.assertIn(report.summary["submission_layout"], {"binder", "mixed"})
+            self.assertTrue(
+                any("PPAP_1431" in name for name in report.summary.get("binder_files", []))
+            )
+            present = {
+                item.element.number for item in report.elements if item.status == "present"
+            }
+            self.assertIn(1, present)
+            self.assertIn(6, present)
+            self.assertIn(7, present)
+            self.assertIn(18, present)
+            self.assertGreater(report.summary["completeness_pct"], 0)
 
 
 class ScannerTests(unittest.TestCase):

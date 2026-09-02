@@ -158,6 +158,12 @@ def _render_metrics(report) -> None:
             + ", ".join(str(page) for page in skipped)
             + f". {_t('toc_note')}"
         )
+    image_only = report.summary.get("image_only_binders") or []
+    if image_only:
+        st.warning(
+            f"{_t('ocr_binder')}: "
+            + ", ".join(str(name) for name in image_only)
+        )
 
 
 def _render_element_table(report) -> None:

@@ -5,6 +5,7 @@ import re
 from .models import InboxFile, SubmissionLayout
 
 BINDER_FILENAME_PATTERNS: tuple[str, ...] = (
+    r"^ppap\b",
     r"ppap[\s_-]?level[\s_-]?3",
     r"ppap[\s_-]?level[\s_-]?\d",
     r"ppap[\s_-]?package",
@@ -42,6 +43,8 @@ DISCRETE_FILENAME_TOKENS: tuple[str, ...] = (
 
 MIN_BINDER_CONTENT_ELEMENTS = 3
 MIN_DISCRETE_FILE_COUNT = 8
+MIN_BINDER_PAGE_COUNT = 8
+MIN_BINDER_SIZE_BYTES = 400_000
 
 
 def _normalize_filename(filename: str) -> str:
@@ -52,7 +55,33 @@ def _normalize_filename(filename: str) -> str:
 
 def is_binder_filename(filename: str) -> bool:
     normalized = _normalize_filename(filename)
+    if re.match(r"^ppap\b", normalized):
+        return True
     return any(re.search(pattern, normalized) for pattern in BINDER_FILENAME_PATTERNS)
+
+
+def _looks_like_standalone_psw(filename: str) -> bool:
+    normalized = _normalize_filename(filename)
+    return bool(
+        re.search(r"\bpsw\b", normalized)
+        or "零件提交保证" in normalized
+        or "零件提交保證" in normalized
+    )
+
+
+def _looks_like_package_pdf(inbox_file: InboxFile) -> bool:
+    """Large/multi-page PDFs named as a package, not a standalone PSW."""
+    if inbox_file.suffix.lower() != ".pdf":
+        return False
+    if _looks_like_standalone_psw(inbox_file.name):
+        return False
+    if inbox_file.size_bytes < 10_000:
+        return False
+    if inbox_file.size_bytes >= MIN_BINDER_SIZE_BYTES:
+        return True
+    from .pdf_text import pdf_page_count
+
+    return pdf_page_count(inbox_file.path) >= MIN_BINDER_PAGE_COUNT
 
 
 def _has_numbered_ppap_prefix(filename: str) -> bool:
@@ -101,7 +130,7 @@ def identify_binder_candidates(
             continue
 
         content_hits = element_hits_by_file.get(inbox_file.relative_path, set())
-        if is_binder_filename(inbox_file.name):
+        if is_binder_filename(inbox_file.name) or _looks_like_package_pdf(inbox_file):
             binder_files.add(inbox_file.relative_path)
             continue
 
@@ -110,9 +139,12 @@ def identify_binder_candidates(
 
     if len(inbox_files) == 1:
         only_file = inbox_files[0]
+        only_hits = element_hits_by_file.get(only_file.relative_path, set())
         if only_file.suffix.lower() == ".pdf" and (
             is_binder_filename(only_file.name)
-            or len(content_hits) >= MIN_BINDER_CONTENT_ELEMENTS
+            or _looks_like_package_pdf(only_file)
+            or len(only_hits) >= MIN_BINDER_CONTENT_ELEMENTS
+            or only_file.name.lower().startswith("ppap")
         ):
             binder_files.add(only_file.relative_path)
 

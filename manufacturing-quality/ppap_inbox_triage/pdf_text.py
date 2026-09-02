@@ -42,6 +42,23 @@ def _read_pdf_pages(path: Path) -> list[tuple[int, str]]:
     return pages
 
 
+def pdf_page_count(path: Path) -> int:
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        return 0
+    try:
+        reader = PdfReader(str(path))
+        if reader.is_encrypted:
+            try:
+                reader.decrypt("")
+            except Exception:
+                return 0
+        return len(reader.pages)
+    except Exception:
+        return 0
+
+
 def extract_pdf_pages(
     path: Path,
     *,

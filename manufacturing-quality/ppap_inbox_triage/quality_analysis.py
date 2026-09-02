@@ -8,6 +8,9 @@ from .models import InboxFile
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
 from .skill_loader import pfmea_countermeasure_playbook, quality_thresholds
 
+# Bump when capability/MSA parsing rules change — shown in the dashboard sidebar.
+QUALITY_PARSER_VERSION = "2026-09-02b"
+
 
 @dataclass(frozen=True)
 class MetricFinding:
@@ -43,6 +46,7 @@ class QualityAnalysis:
 
     def to_summary(self) -> dict[str, Any]:
         return {
+            "parser_version": QUALITY_PARSER_VERSION,
             "msa_findings": [
                 {
                     "metric": item.metric,
@@ -134,6 +138,17 @@ def _looks_like_pfmea(text: str) -> bool:
     return "pfmea" in lowered or "process fmea" in lowered or "过程fmea" in lowered or "过程 fmea" in lowered
 
 
+def _is_spurious_capability_reading(label: str, value: float, context: str) -> bool:
+    """Reject row labels like 'Cpk 1' (characteristic #1), not Cpk = 1.00."""
+    stripped = context.strip()
+    if re.match(rf"^{re.escape(label)}\s+\d{{1,2}}$", stripped, re.I):
+        return True
+    if value == int(value) and 1 <= int(value) <= 9:
+        if "." not in stripped and ":" not in stripped and "=" not in stripped:
+            return True
+    return False
+
+
 def _extract_grr_values(text: str) -> list[tuple[float, str]]:
     hits: list[tuple[float, str]] = []
     for pattern in GRR_PATTERNS:
@@ -162,6 +177,8 @@ def _extract_capability_values(text: str) -> list[tuple[str, float, str]]:
                 if re.search(r"[:=]\s*$", prefix):
                     continue
             context = match.group(0).strip()[:80]
+            if _is_spurious_capability_reading(label, value, context):
+                continue
             key = (label, value, context)
             if key in seen:
                 continue
@@ -316,6 +333,8 @@ def analyze_inbox_quality(
                     )
 
             for label, value, context in _extract_capability_values(text):
+                if _is_spurious_capability_reading(label, value, context):
+                    continue
                 minimum = cpk_min if label == "Cpk" else ppk_min
                 status = "fail" if value < minimum else "pass"
                 finding = MetricFinding(

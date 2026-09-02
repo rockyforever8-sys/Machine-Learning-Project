@@ -17,6 +17,7 @@ if str(DASHBOARD_DIR) not in sys.path:
     sys.path.insert(0, str(DASHBOARD_DIR))
 
 from i18n import element_display_name, element_status_label, status_label, ui_text
+from ppap_inbox_triage.quality_analysis import QUALITY_PARSER_VERSION
 from ppap_inbox_triage.report import format_console_summary, write_package_reports
 from ppap_inbox_triage.skill_loader import skill_element_records, skill_metadata
 from ppap_inbox_triage.sqe_checklist import SQE_VERIFICATION_CHECKS, build_binder_page_index, format_page_numbers
@@ -288,6 +289,8 @@ def _render_skill_rules() -> None:
 
 def _render_quality_analysis(report) -> None:
     payload = report.summary.get("quality_analysis") or {}
+    parser_version = payload.get("parser_version") or QUALITY_PARSER_VERSION
+    st.caption(f"{_t('quality_parser_version')}: `{parser_version}`")
     flags = payload.get("flags") or []
     if not flags and not payload.get("msa_findings") and not payload.get("capability_findings") and not payload.get("pfmea_top_rpn"):
         st.info(_t("quality_none"))
@@ -489,6 +492,7 @@ def main() -> None:
         meta = skill_metadata()
         st.markdown(f"**{_t('rules')}:** {meta['title']}")
         st.caption(Path(meta["source_path"]).name if meta["source_path"] else _t("skill_rules_file"))
+        st.caption(f"{_t('quality_parser_version')}: `{QUALITY_PARSER_VERSION}`")
         st.markdown(f"**Tip:** {_t('tip')}")
 
     st.title(_t("title"))

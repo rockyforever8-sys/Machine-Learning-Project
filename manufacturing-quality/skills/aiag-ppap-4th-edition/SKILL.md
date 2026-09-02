@@ -153,12 +153,13 @@ Loader search order:
 When classifying or reviewing PPAP inbox files:
 
 1. Identify **submission level** (default Level 3).
-2. Detect **binder vs discrete vs mixed**.
-3. Map files/pages to the **18 elements** using AIAG content, not titles.
-4. Flag **critical gaps** first: PSW (18), Control Plan (7), PFMEA (6).
-5. Call out **physical artifacts** 14–16 even if paperwork exists.
-6. Check **5/6/7 consistency** and PSW vs drawing rev.
-7. Apply **CSR (17)** before closing “N/A” on 3, 13, 15.
+2. Treat **each immediate inbox subfolder as an independent submission** with its own 18-element review. Do not mix files across supplier folders.
+3. Detect **binder vs discrete vs mixed** inside that folder.
+4. Map files/pages to the **18 elements** using AIAG content, not titles.
+5. Flag **critical gaps** first: PSW (18), Control Plan (7), PFMEA (6).
+6. Call out **physical artifacts** 14–16 even if paperwork exists.
+7. Check **5/6/7 consistency** and PSW vs drawing rev.
+8. Apply **CSR (17)** before closing “N/A” on 3, 13, 15.
 
 Triage statuses used by this project:
 

@@ -95,6 +95,16 @@ class OrphanFile:
     reason: str
 
 
+@dataclass(frozen=True)
+class SubmissionPackage:
+    """One independent Level 3 submission (usually an immediate inbox subfolder)."""
+
+    name: str
+    path: Path
+    recursive: bool = True
+    kind: str = "folder"
+
+
 @dataclass
 class TriageReport:
     inbox_path: Path

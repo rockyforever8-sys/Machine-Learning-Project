@@ -9,9 +9,9 @@ from ppap_inbox_triage.classifier import classify_file
 from ppap_inbox_triage.layout import is_binder_filename
 from ppap_inbox_triage.models import InboxFile, MatchConfidence
 from ppap_inbox_triage.pdf_text import extract_pdf_text, pdf_text_available
-from ppap_inbox_triage.report import report_to_dict, write_all_reports
-from ppap_inbox_triage.scanner import scan_inbox
-from ppap_inbox_triage.triage import triage_inbox
+from ppap_inbox_triage.report import report_to_dict, write_all_reports, write_package_reports
+from ppap_inbox_triage.scanner import discover_submission_packages, scan_inbox
+from ppap_inbox_triage.triage import triage_inbox, triage_packages
 from ppap_inbox_triage.watcher import snapshot_inbox, watch_inbox
 
 from pdf_fixture import write_multipage_text_pdf, write_text_pdf
@@ -277,6 +277,47 @@ class WatcherTests(unittest.TestCase):
                 watch_inbox(inbox, output, run_once=True)
 
             self.assertTrue((output / "triage-report.json").exists())
+
+
+class PackageDiscoveryTests(unittest.TestCase):
+    def test_flat_inbox_is_one_package(self) -> None:
+        packages = discover_submission_packages(FIXTURES)
+        self.assertEqual(len(packages), 1)
+        self.assertEqual(packages[0].kind, "inbox")
+
+    def test_two_folders_are_independent_reviews(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            inbox = Path(temp_dir)
+            folder_a = inbox / "0044-G22C615XX0025 D002 606146"
+            folder_b = inbox / "1104-1060261A(QWP086A)PPAP24.03.25-Update"
+            folder_a.mkdir()
+            folder_b.mkdir()
+            (folder_a / "01_Drawing.pdf").write_text("drawing", encoding="utf-8")
+            (folder_a / "18_PSW_Signed.pdf").write_text("x", encoding="utf-8")
+            (folder_b / "01_Drawing.pdf").write_text("drawing", encoding="utf-8")
+            (folder_b / "18_PSW_Signed.pdf").write_text("x", encoding="utf-8")
+
+            mixed = triage_inbox(inbox)
+            mixed_design = next(item for item in mixed.elements if item.element.number == 1)
+            self.assertEqual(mixed_design.status, "duplicate")
+
+            packages = discover_submission_packages(inbox)
+            self.assertEqual([package.name for package in packages], [folder_a.name, folder_b.name])
+
+            results = triage_packages(inbox)
+            self.assertEqual(len(results), 2)
+            for _package, report in results:
+                design = next(item for item in report.elements if item.element.number == 1)
+                psw = next(item for item in report.elements if item.element.number == 18)
+                self.assertEqual(design.status, "present")
+                self.assertEqual(psw.status, "present")
+
+            with tempfile.TemporaryDirectory() as output_dir:
+                written = write_package_reports(results, Path(output_dir))
+                self.assertEqual(len(written), 2)
+                self.assertTrue((Path(output_dir) / "packages-index.json").exists())
+                self.assertTrue((Path(output_dir) / folder_a.name / "triage-report.json").exists())
+                self.assertTrue((Path(output_dir) / folder_b.name / "sqe-checklist.md").exists())
 
 
 class TriageTests(unittest.TestCase):

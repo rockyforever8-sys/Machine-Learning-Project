@@ -12,7 +12,7 @@ python3 -m ppap_inbox_triage triage fixtures/sample_inbox --output ./triage-out 
 
 ## What it does
 
-1. **Scans** an inbox folder (recursive by default)
+1. **Scans** an inbox folder. Immediate subfolders are independent PPAP submissions (18-element review each).
 2. **Detects layout** — binder vs discrete vs mixed submission
 3. **Classifies** each file to PPAP elements using filename patterns and AIAG semantic PDF content (per-page for binders; table-of-contents pages are skipped)
 4. **Triages** completeness, critical gaps, duplicates, and orphans

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -16,10 +17,10 @@ if str(DASHBOARD_DIR) not in sys.path:
     sys.path.insert(0, str(DASHBOARD_DIR))
 
 from i18n import element_display_name, element_status_label, status_label, ui_text
-from ppap_inbox_triage.report import format_console_summary, report_to_dict, write_all_reports
+from ppap_inbox_triage.report import format_console_summary, write_package_reports
 from ppap_inbox_triage.skill_loader import skill_element_records, skill_metadata
 from ppap_inbox_triage.sqe_checklist import SQE_VERIFICATION_CHECKS, build_binder_page_index, format_page_numbers
-from ppap_inbox_triage.triage import triage_inbox
+from ppap_inbox_triage.triage import triage_packages
 
 
 def _lang() -> str:
@@ -81,20 +82,23 @@ ELEMENT_STATUS_COLORS = {
 }
 
 
+def _widget_prefix(name: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_-]+", "_", name)[:80]
+
+
 def _run_triage(
     inbox_path: Path,
     output_dir: Path,
     *,
     use_pdf_text: bool,
     layout_mode: str,
-) -> dict[str, Path]:
-    report = triage_inbox(
+) -> list[dict[str, object]]:
+    results = triage_packages(
         inbox_path,
         use_pdf_text=use_pdf_text,
         layout_mode=layout_mode,
     )
-    outputs = write_all_reports(report, output_dir)
-    return {"report": report, "outputs": outputs}
+    return write_package_reports(results, output_dir)
 
 
 def _render_simple_table(rows: list[dict[str, object]]) -> None:
@@ -209,7 +213,7 @@ def _render_binder_index(report) -> None:
     _render_simple_table(rows)
 
 
-def _render_sqe_checklist(report) -> None:
+def _render_sqe_checklist(report, *, key_prefix: str = "pkg") -> None:
     records = {int(item["number"]): item for item in skill_element_records()}
     for triage in report.elements:
         pages = format_page_numbers(triage.matches)
@@ -231,7 +235,7 @@ def _render_sqe_checklist(report) -> None:
             if triage.notes:
                 st.caption("; ".join(note for note in triage.notes if not note.startswith("AIAG PPAP")))
             for index, check in enumerate(checks):
-                st.checkbox(check, key=f"sqe_{triage.element.number}_{index}")
+                st.checkbox(check, key=f"{key_prefix}_sqe_{triage.element.number}_{index}")
 
 
 def _render_skill_rules() -> None:
@@ -276,6 +280,103 @@ def _render_skill_rules() -> None:
     _render_simple_table(rows)
 
 
+def _render_packages_table(items: list[dict[str, object]]) -> None:
+    rows = []
+    for item in items:
+        package = item["package"]
+        report = item["report"]
+        rows.append(
+            {
+                _t("col_package"): package.name,
+                _t("col_status"): status_label(_lang(), report.status.value),
+                _t("completeness"): f"{report.summary['completeness_pct']}%",
+                _t("elements_present"): f"{report.summary['elements_present']}/18",
+                _t("missing"): report.summary["elements_missing"],
+                _t("files_scanned"): report.summary["files_scanned"],
+                _t("submission_layout"): report.summary.get("submission_layout", ""),
+            }
+        )
+    _render_simple_table(rows)
+
+
+def _render_package_detail(item: dict[str, object], *, key_prefix: str, include_skill: bool) -> None:
+    report = item["report"]
+    outputs = item["outputs"]
+    output_dir = item.get("output_dir")
+    _render_metrics(report)
+
+    tab_labels = [
+        _t("tab_overview"),
+        _t("tab_elements"),
+        _t("tab_binder"),
+        _t("tab_sqe"),
+        _t("tab_downloads"),
+    ]
+    if include_skill:
+        tab_labels.insert(4, _t("tab_skill"))
+    tabs = st.tabs(tab_labels)
+    tab_overview, tab_elements, tab_binder, tab_sqe = tabs[0], tabs[1], tabs[2], tabs[3]
+    if include_skill:
+        tab_skill = tabs[4]
+        tab_downloads = tabs[5]
+    else:
+        tab_skill = None
+        tab_downloads = tabs[4]
+
+    with tab_overview:
+        st.subheader(_t("recommended"))
+        for index, action in enumerate(report.actions, start=1):
+            st.write(f"{index}. {action}")
+
+        binder_files = report.summary.get("binder_files", [])
+        if binder_files:
+            st.subheader(_t("binder_files"))
+            for path in binder_files:
+                st.code(path)
+
+        st.subheader(_t("console"))
+        st.code(format_console_summary(report))
+
+    with tab_elements:
+        _render_element_table(report)
+
+    with tab_binder:
+        _render_binder_index(report)
+
+    with tab_sqe:
+        st.subheader(_t("sqe_verify"))
+        decision = st.radio(
+            _t("review_decision"),
+            [_t("approve"), _t("approve_conditions"), _t("reject")],
+            horizontal=True,
+            key=f"{key_prefix}_decision",
+        )
+        st.text_input(_t("reviewer"), key=f"{key_prefix}_reviewer")
+        st.text_input(_t("part_program"), key=f"{key_prefix}_part")
+        st.text_input(_t("supplier"), key=f"{key_prefix}_supplier")
+        st.text_area(_t("conditions"), key=f"{key_prefix}_conditions")
+        _render_sqe_checklist(report, key_prefix=key_prefix)
+        st.caption(f"{_t('decision_selected')}: {decision}")
+
+    if tab_skill is not None:
+        with tab_skill:
+            _render_skill_rules()
+
+    with tab_downloads:
+        if outputs:
+            for name, path in outputs.items():
+                if path.exists():
+                    st.download_button(
+                        label=f"{_t('download')} {path.name}",
+                        data=path.read_bytes(),
+                        file_name=path.name,
+                        mime="application/octet-stream",
+                        use_container_width=True,
+                        key=f"{key_prefix}_dl_{name}",
+                    )
+        st.caption(f"{_t('reports_saved')} `{Path(output_dir).resolve() if output_dir else ''}`")
+
+
 def main() -> None:
     st.set_page_config(
         page_title="PPAP Level 3 Inbox Triage",
@@ -318,10 +419,8 @@ def main() -> None:
     inbox = Path(inbox_path)
     output = Path(output_dir)
 
-    if "last_run" not in st.session_state:
-        st.session_state.last_run = None
-    if "last_outputs" not in st.session_state:
-        st.session_state.last_outputs = None
+    if "last_packages" not in st.session_state:
+        st.session_state.last_packages = None
 
     wants_scan = run_clicked or (auto_refresh and inbox.exists() and inbox.is_dir())
 
@@ -336,89 +435,47 @@ def main() -> None:
     if wants_scan:
         with st.spinner(_t("scanning")):
             try:
-                result = _run_triage(
+                st.session_state.last_packages = _run_triage(
                     inbox,
                     output,
                     use_pdf_text=use_pdf_text,
                     layout_mode=layout_mode,
                 )
-                st.session_state.last_run = result["report"]
-                st.session_state.last_outputs = result["outputs"]
             except Exception as error:
                 st.error(f"{_t('triage_failed')}: {error}")
                 return
 
-    report = st.session_state.last_run
-    outputs = st.session_state.last_outputs
+    items = st.session_state.last_packages
 
-    if report is None:
+    if not items:
         st.info(_t("configure"))
         if not inbox.exists():
             st.warning(_t("inbox_missing"))
         return
 
-    _render_metrics(report)
-
-    tab_overview, tab_elements, tab_binder, tab_sqe, tab_skill, tab_downloads = st.tabs(
-        [
-            _t("tab_overview"),
-            _t("tab_elements"),
-            _t("tab_binder"),
-            _t("tab_sqe"),
-            _t("tab_skill"),
-            _t("tab_downloads"),
-        ]
-    )
-
-    with tab_overview:
-        st.subheader(_t("recommended"))
-        for index, action in enumerate(report.actions, start=1):
-            st.write(f"{index}. {action}")
-
-        binder_files = report.summary.get("binder_files", [])
-        if binder_files:
-            st.subheader(_t("binder_files"))
-            for path in binder_files:
-                st.code(path)
-
-        st.subheader(_t("console"))
-        st.code(format_console_summary(report))
-
-    with tab_elements:
-        _render_element_table(report)
-
-    with tab_binder:
-        _render_binder_index(report)
-
-    with tab_sqe:
-        st.subheader(_t("sqe_verify"))
-        decision = st.radio(
-            _t("review_decision"),
-            [_t("approve"), _t("approve_conditions"), _t("reject")],
-            horizontal=True,
+    if len(items) == 1:
+        package = items[0]["package"]
+        st.caption(f"{_t('col_package')}: `{package.name}`")
+        _render_package_detail(
+            items[0],
+            key_prefix=_widget_prefix(package.name),
+            include_skill=True,
         )
-        st.text_input(_t("reviewer"))
-        st.text_input(_t("part_program"))
-        st.text_input(_t("supplier"))
-        st.text_area(_t("conditions"))
-        _render_sqe_checklist(report)
-        st.caption(f"{_t('decision_selected')}: {decision}")
-
-    with tab_skill:
-        _render_skill_rules()
-
-    with tab_downloads:
-        if outputs:
-            for name, path in outputs.items():
-                if path.exists():
-                    st.download_button(
-                        label=f"{_t('download')} {path.name}",
-                        data=path.read_bytes(),
-                        file_name=path.name,
-                        mime="application/octet-stream",
-                        use_container_width=True,
-                    )
-        st.caption(f"{_t('reports_saved')} `{output.resolve()}`")
+    else:
+        st.subheader(_t("independent_reviews"))
+        st.caption(_t("packages_detected").format(count=len(items)))
+        _render_packages_table(items)
+        package_tabs = st.tabs([item["package"].name for item in items] + [_t("tab_skill")])
+        for tab, item in zip(package_tabs[:-1], items):
+            package = item["package"]
+            with tab:
+                _render_package_detail(
+                    item,
+                    key_prefix=_widget_prefix(package.name),
+                    include_skill=False,
+                )
+        with package_tabs[-1]:
+            _render_skill_rules()
 
     if auto_refresh and not run_clicked:
         st.caption(f"{_t('auto_refresh_on')} {refresh_seconds}{_t('seconds')}")

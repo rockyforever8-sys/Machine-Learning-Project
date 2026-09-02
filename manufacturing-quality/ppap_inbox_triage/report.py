@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from pathlib import Path
 
-from .models import TriageReport, TriageStatus, match_evidence
+from .models import SubmissionPackage, TriageReport, TriageStatus, match_evidence
 from .sqe_checklist import (
     build_binder_page_index,
     format_page_numbers,
@@ -115,6 +116,11 @@ def write_markdown_report(report: TriageReport, output_path: Path) -> Path:
         "# PPAP Level 3 Inbox Triage Report",
         "",
         f"- **Inbox:** `{report.inbox_path}`",
+        *(
+            [f"- **Submission:** `{report.summary['package_name']}`"]
+            if report.summary.get("package_name")
+            else []
+        ),
         f"- **Scanned:** {report.scanned_at}",
         f"- **Status:** `{report.status.value}`",
         f"- **Completeness:** {report.summary['completeness_pct']}% "
@@ -195,6 +201,18 @@ def write_markdown_report(report: TriageReport, output_path: Path) -> Path:
     return output_path
 
 
+def package_slug(name: str) -> str:
+    slug = re.sub(r'[<>:"/\\|?*]+', "_", name).strip()
+    slug = re.sub(r"\s+", " ", slug)
+    return slug or "submission"
+
+
+def package_output_dir(base_dir: Path, packages: list[SubmissionPackage], package: SubmissionPackage) -> Path:
+    if len(packages) <= 1:
+        return base_dir
+    return base_dir / package_slug(package.name)
+
+
 def write_all_reports(report: TriageReport, output_dir: Path) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     return {
@@ -203,6 +221,47 @@ def write_all_reports(report: TriageReport, output_dir: Path) -> dict[str, Path]
         "markdown": write_markdown_report(report, output_dir / "triage-report.md"),
         "sqe_checklist": write_sqe_checklist_report(report, output_dir / "sqe-checklist.md"),
     }
+
+
+def write_package_reports(
+    results: list[tuple[SubmissionPackage, TriageReport]],
+    output_dir: Path,
+) -> list[dict[str, object]]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    packages = [package for package, _report in results]
+    written: list[dict[str, object]] = []
+    index_rows: list[dict[str, object]] = []
+    for package, report in results:
+        dest = package_output_dir(output_dir, packages, package)
+        outputs = write_all_reports(report, dest)
+        written.append(
+            {
+                "package": package,
+                "report": report,
+                "outputs": outputs,
+                "output_dir": dest,
+            }
+        )
+        index_rows.append(
+            {
+                "name": package.name,
+                "path": str(package.path),
+                "kind": package.kind,
+                "status": report.status.value,
+                "completeness_pct": report.summary.get("completeness_pct"),
+                "elements_present": report.summary.get("elements_present"),
+                "elements_missing": report.summary.get("elements_missing"),
+                "files_scanned": report.summary.get("files_scanned"),
+                "submission_layout": report.summary.get("submission_layout"),
+                "output_dir": str(dest),
+            }
+        )
+    if len(results) > 1:
+        (output_dir / "packages-index.json").write_text(
+            json.dumps({"packages": index_rows}, indent=2),
+            encoding="utf-8",
+        )
+    return written
 
 
 def format_console_summary(report: TriageReport) -> str:
@@ -219,6 +278,9 @@ def format_console_summary(report: TriageReport) -> str:
         f"Files: {report.summary['files_scanned']} | Missing: {report.summary['elements_missing']} | "
         f"Duplicates: {report.summary['elements_duplicate']} | Orphans: {report.summary['orphan_files']}",
     ]
+    package_name = report.summary.get("package_name")
+    if package_name:
+        lines.insert(1, f"Submission: {package_name}")
 
     if report.summary["missing_element_numbers"]:
         lines.append(

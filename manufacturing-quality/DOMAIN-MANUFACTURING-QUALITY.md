@@ -31,7 +31,7 @@ Level 3 submission requires documentation for all 18 AIAG PPAP elements unless w
 
 ## Inbox Triage Workflow
 
-1. Supplier drops files into an inbox folder (flat or nested).
+1. Supplier drops files into an inbox folder. **Immediate subfolders are independent submissions** (each gets its own 18-element Level 3 review). A flat inbox with no subfolders is still one review.
 2. Scanner inventories files and extracts lightweight metadata.
 3. **Layout detection** decides whether the submission is a **binder** (one/multi-section PDF), **discrete** (separate element files), or **mixed**.
 4. Classifier maps files to PPAP elements using filename patterns and **AIAG semantic content evidence** (per-page for binders). Matching is bilingual (English and Simplified/Traditional Chinese): TOC phrases such as 目录/目錄 are skipped, and PDF text that inserts spaces between Chinese characters is compacted before matching. Table-of-contents / index pages are skipped so a title listing is not treated as the element itself.

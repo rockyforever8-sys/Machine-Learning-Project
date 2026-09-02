@@ -21,12 +21,13 @@ from .models import (
     MatchConfidence,
     OrphanFile,
     SubmissionLayout,
+    SubmissionPackage,
     TriageReport,
     TriageStatus,
     match_evidence,
 )
 from .pdf_text import ALL_PAGES, extract_pdf_pages, extract_pdf_text
-from .scanner import scan_inbox
+from .scanner import discover_submission_packages, scan_inbox
 from .sqe_checklist import compact_page_range, format_page_numbers
 
 
@@ -410,3 +411,34 @@ def triage_inbox(
         summary=summary,
         actions=actions,
     )
+
+
+def triage_packages(
+    inbox_path: Path,
+    *,
+    submission_level: int = 3,
+    use_pdf_text: bool = False,
+    pdf_max_pages: int = 5,
+    layout_mode: str = "auto",
+) -> list[tuple[SubmissionPackage, TriageReport]]:
+    """Run an independent 18-element review for each detected submission folder."""
+    results: list[tuple[SubmissionPackage, TriageReport]] = []
+    for package in discover_submission_packages(inbox_path):
+        report = triage_inbox(
+            package.path,
+            submission_level=submission_level,
+            recursive=package.recursive,
+            use_pdf_text=use_pdf_text,
+            pdf_max_pages=pdf_max_pages,
+            layout_mode=layout_mode,
+        )
+        report.summary["package_name"] = package.name
+        report.summary["package_path"] = str(package.path)
+        report.summary["package_kind"] = package.kind
+        if package.kind == "folder":
+            report.actions.insert(
+                0,
+                f"Independent Level 3 review of `{package.name}` — not mixed with other inbox folders",
+            )
+        results.append((package, report))
+    return results

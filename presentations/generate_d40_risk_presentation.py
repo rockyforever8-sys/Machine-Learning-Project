@@ -633,48 +633,42 @@ def slide_gcms_curve(prs):
 
 
 def slide_gcms_peak_findings(prs):
-    """Appendix slide: major C8–C14 peaks and pass/fail reading of the chromatogram."""
+    """Appendix slide: speculative reading of labeled giants on this lot chromatogram."""
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_chrome(slide, "GC-MS Peak Findings", "Appendix — major peaks on the hydrocarbon cleaner chromatogram")
+    add_chrome(
+        slide,
+        "GC-MS Peak Findings — This Lot",
+        "Speculative IDs from RT order in a C9–C11 D40 cut  •  confirm vs method + MS library",
+    )
 
-    path = ASSETS / "gcms_curve.png"
+    path = ASSETS / "gcms_lot_chromatogram.jpg"
     if path.exists():
-        slide.shapes.add_picture(str(path), Inches(7.05), Inches(1.15), Inches(5.85), Inches(3.55))
+        slide.shapes.add_picture(str(path), Inches(7.15), Inches(1.12), Inches(5.75), Inches(4.55))
 
     add_table(
         slide,
-        ["Peak", "What it is", "Genuine signal"],
+        ["RT (min)", "Likely family", "QC reading"],
         [
-            ["C8", "Light hydrocarbon", "Present, even height"],
-            ["C10", "Mid-chain", "Even spacing"],
-            ["C12", "Mid-chain", "Even spacing"],
-            ["C14", "Heavier hydrocarbon", "Completes the fingerprint"],
+            ["3.765", "C8–C9 light end (IBP)", "Keep tiny — not MC / MeOH"],
+            ["7.825", "C9 / early-C10 isomers", "First body cluster"],
+            ["8.583  ★", "C10 iso / naphthene", "Giant — heart of the cut"],
+            ["9.030", "C10 isomer satellite", "Should track the 8.583 giant"],
+            ["9.822 / 9.954", "C10–C11 isomer pair", "Adjacent boiling points"],
+            ["10.530  ★", "C11 iso / naphthene", "2nd giant — ratio vs 8.583"],
+            ["13.179 / 13.545", "C11–C12 heavy end (DP)", "Keep small — pore-residue risk"],
         ],
-        left=0.55,
-        top=1.15,
-        width=6.3,
-        col_widths=[1.3, 2.4, 2.6],
-        font=15,
-    )
-
-    add_orange_bullets(
-        slide,
-        [
-            "PASS: even C8–C14 series, clean baseline",
-            "FAIL: extra / irregular peaks = adulterants",
-            "Early extra peaks → MC (~40 °C) or methanol (~65 °C)",
-        ],
-        left=0.55,
-        top=4.55,
-        width=6.3,
-        size=18,
+        left=0.45,
+        top=1.10,
+        width=6.55,
+        col_widths=[1.55, 2.35, 2.65],
+        font=12,
     )
     add_callout(
         slide,
-        "Finding: genuine D40 is an even C8–C14 fingerprint. Unknown peaks are a reject — not visible by eye.",
-        left=0.55,
+        "Read: two giants (8.583 & 10.530 min) = D40 fingerprint. Growing 3.765 = light adulterant. Growing 13.x = wrong / wide cut.",
+        left=0.45,
         top=6.18,
-        width=12.3,
+        width=12.4,
     )
     return slide
 

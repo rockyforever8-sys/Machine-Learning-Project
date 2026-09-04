@@ -41,7 +41,7 @@ Johnson Electric–branded C-suite briefing on Exxsol D40 supply-chain integrity
 | 21 | Repackaging — highest risk point |
 | 22 | **GC-MS equipment** — how the system works |
 | 23 | **How GC-MS detects abnormalities** — genuine vs counterfeit curves |
-| 24 | **GC-MS peak findings** — C8–C14 fingerprint; pass/fail reading |
+| 24 | **GC-MS peak findings (this lot)** — RT giants 8.583 / 10.530 min + light/heavy tails |
 | 25 | Why GC-MS matters for QC |
 | 26 | Questions |
 

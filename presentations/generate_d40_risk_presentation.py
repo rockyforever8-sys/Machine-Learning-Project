@@ -673,6 +673,94 @@ def slide_gcms_peak_findings(prs):
     return slide
 
 
+def slide_gcms_d60_peak_findings(prs):
+    """Appendix: speculative reading of the D60(S) chromatogram giants."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(
+        slide,
+        "GC-MS Peak Findings — D60(S)",
+        "Speculative IDs from RT order in a C10–C13 D60 cut  •  confirm vs method + MS library",
+    )
+
+    path = ASSETS / "gcms_d60_chromatogram.jpg"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(7.15), Inches(1.12), Inches(5.75), Inches(4.55))
+
+    add_table(
+        slide,
+        ["RT (min)", "Likely family", "QC reading"],
+        [
+            ["5.8 – 8.9", "C10 light front", "Small — lights already cut"],
+            ["9.237 / 10.140", "C11 isomers", "Rising flank of the cut"],
+            ["10.365 / 10.556", "C11–C12 cluster", "Pre-giant body"],
+            ["10.873  ★", "C12 iso / naphthene", "Giant — heart of D60"],
+            ["11.126 / 11.514", "C12 satellites", "Should track 10.873"],
+            ["12.5 – 13.2", "C13 heavy end (DP)", "Keep small — slow dry"],
+        ],
+        left=0.45,
+        top=1.10,
+        width=6.55,
+        col_widths=[1.65, 2.25, 2.65],
+        font=12,
+    )
+    add_callout(
+        slide,
+        "Read: D60 heart is one mountain at 10.873 min — not D40’s twin giants at 8.58 / 10.53. Envelope starts ~2 min later.",
+        left=0.45,
+        top=6.18,
+        width=12.4,
+    )
+    return slide
+
+
+def slide_gcms_d40_vs_d60(prs):
+    """Appendix: why D40 and D60(S) chromatograms differ in shape and RT."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(
+        slide,
+        "D40 vs D60(S) — Why the Charts Differ",
+        "Same GC principle: heavier molecules spend longer on the column",
+    )
+
+    d40 = ASSETS / "gcms_lot_chromatogram.jpg"
+    d60 = ASSETS / "gcms_d60_chromatogram.jpg"
+    if d40.exists():
+        slide.shapes.add_picture(str(d40), Inches(0.45), Inches(1.12), Inches(6.15), Inches(2.55))
+    if d60.exists():
+        slide.shapes.add_picture(str(d60), Inches(6.75), Inches(1.12), Inches(6.15), Inches(2.55))
+
+    cap_l = slide.shapes.add_textbox(Inches(0.45), Inches(3.68), Inches(6.15), Inches(0.32))
+    pl = cap_l.text_frame.paragraphs[0]
+    pl.alignment = PP_ALIGN.CENTER
+    rl = pl.add_run()
+    rl.text = "D40  •  giants 8.583 & 10.530 min  •  C9–C11"
+    set_run(rl, size=14, bold=True, color=ORANGE)
+
+    cap_r = slide.shapes.add_textbox(Inches(6.75), Inches(3.68), Inches(6.15), Inches(0.32))
+    pr = cap_r.text_frame.paragraphs[0]
+    pr.alignment = PP_ALIGN.CENTER
+    rr = pr.add_run()
+    rr.text = "D60(S)  •  giant 10.873 min  •  C10–C13"
+    set_run(rr, size=14, bold=True, color=ORANGE)
+
+    add_table(
+        slide,
+        ["Feature", "D40", "D60(S)", "Logical reason"],
+        [
+            ["Envelope start", "~3.8 min", "~5.8 min", "D60 IBP higher — C8–C9 lights removed"],
+            ["Heart (giant)", "8.58 + 10.53 (twin)", "10.87 (one mountain)", "Cut centered C10/C11 vs C11–C12"],
+            ["Main mass", "7 – 11 min", "9 – 12.5 min", "BP 163–187 °C vs 180–220 °C"],
+            ["Shape", "Two tall spikes", "Late dense hump", "Heavier isomers cluster later"],
+        ],
+        left=0.45,
+        top=4.05,
+        width=12.45,
+        col_widths=[2.1, 2.7, 2.9, 4.75],
+        font=13,
+    )
+    return slide
+
+
 def slide_gcms_why(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_chrome(slide, "Why GC-MS Matters for QC")
@@ -736,6 +824,8 @@ def build_presentation():
     slide_gcms_equip(prs)
     slide_gcms_curve(prs)
     slide_gcms_peak_findings(prs)
+    slide_gcms_d60_peak_findings(prs)
+    slide_gcms_d40_vs_d60(prs)
     slide_gcms_why(prs)
     slide_qa(prs)
 
@@ -745,15 +835,17 @@ def build_presentation():
 
 
 def build_appendix_insert():
-    """Single-slide file to copy into the full pack appendix."""
+    """Appendix insert: D40 peaks, D60(S) peaks, and comparison."""
     generate_brand()
     prs = Presentation()
     prs.slide_width = Inches(SW)
     prs.slide_height = Inches(SH)
     slide_gcms_peak_findings(prs)
+    slide_gcms_d60_peak_findings(prs)
+    slide_gcms_d40_vs_d60(prs)
     out = Path(__file__).parent / "Appendix_GCMS_Peak_Findings.pptx"
     prs.save(out)
-    print(f"Saved insert slide: {out}")
+    print(f"Saved insert slides: {out} ({len(prs.slides)} slides)")
 
 
 if __name__ == "__main__":

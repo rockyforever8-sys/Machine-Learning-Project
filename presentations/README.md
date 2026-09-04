@@ -41,9 +41,11 @@ Johnson Electric–branded C-suite briefing on Exxsol D40 supply-chain integrity
 | 21 | Repackaging — highest risk point |
 | 22 | **GC-MS equipment** — how the system works |
 | 23 | **How GC-MS detects abnormalities** — genuine vs counterfeit curves |
-| 24 | **GC-MS peak findings (this lot)** — RT giants 8.583 / 10.530 min + light/heavy tails |
-| 25 | Why GC-MS matters for QC |
-| 26 | Questions |
+| 24 | **GC-MS peak findings (D40 lot)** — giants 8.583 / 10.530 min |
+| 25 | **GC-MS peak findings (D60(S))** — giant 10.873 min |
+| 26 | **D40 vs D60(S)** — why shape, peaks and RT location differ |
+| 27 | Why GC-MS matters for QC |
+| 28 | Questions |
 
 Standalone insert (same slide, copy into another pack):
 

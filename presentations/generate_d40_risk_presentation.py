@@ -1,548 +1,701 @@
 #!/usr/bin/env python3
-"""Generate C-suite Risk Committee presentation: Exxsol D40 supply chain integrity."""
+"""Johnson Electric Risk Committee deck — Exxsol D40 supply chain integrity."""
 
 from pathlib import Path
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.text import PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
+from lxml import etree
 
-from generate_slide_graphics import ASSETS, generate_all
+from generate_je_assets import ASSETS, generate_all as generate_brand
 
-# Corporate palette
-NAVY = RGBColor(0x00, 0x2B, 0x5C)
-TEAL = RGBColor(0x00, 0x7A, 0x87)
-SLATE = RGBColor(0x33, 0x41, 0x55)
-LIGHT_GRAY = RGBColor(0xF1, 0xF5, 0xF9)
-MID_GRAY = RGBColor(0x64, 0x74, 0x8B)
+# Johnson Electric brand
+ORANGE = RGBColor(0xF5, 0x82, 0x20)
+ORANGE_SOFT = RGBColor(0xFD, 0xE8, 0xD0)
+BLACK = RGBColor(0x14, 0x14, 0x14)
+GRAY = RGBColor(0x5A, 0x5A, 0x5A)
+MID_GRAY = RGBColor(0x8A, 0x8A, 0x8A)
+LIGHT = RGBColor(0xF7, 0xF7, 0xF7)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-RED = RGBColor(0xB9, 0x1C, 0x1C)
-AMBER = RGBColor(0xB4, 0x53, 0x09)
-GREEN = RGBColor(0x16, 0x65, 0x34)
+BLUE = RGBColor(0x1B, 0x4F, 0x9C)
+RED = RGBColor(0xC4, 0x39, 0x1D)
+GREEN = RGBColor(0x2E, 0x7D, 0x32)
 
+SW = 13.333
+SH = 7.5
 OUTPUT = Path(__file__).parent / "Exxsol_D40_Supply_Chain_Risk_Committee.pptx"
 
-# Layout constants — content left, graphic right
-IMG_LEFT = 6.35
-IMG_TOP = 1.35
-IMG_W = 3.35
-IMG_H = 5.35
-TEXT_LEFT = 0.45
-TEXT_TOP = 1.35
-TEXT_W = 5.65
 
-
-def set_run_font(run, size=22, bold=False, color=SLATE, name="Calibri"):
+def set_run(run, size=22, bold=False, color=BLACK, name="Calibri"):
     run.font.name = name
     run.font.size = Pt(size)
     run.font.bold = bold
     run.font.color.rgb = color
 
 
-def add_footer(slide, text="Confidential — Risk Committee | Exxsol D40"):
-    box = slide.shapes.add_textbox(Inches(0.4), Inches(7.08), Inches(9.2), Inches(0.28))
+def _no_line(shape):
+    shape.line.fill.background()
+
+
+def add_logo(slide, left=10.85, top=6.85, width=2.15):
+    path = ASSETS / "je_logo.png"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(left), Inches(top), Inches(width))
+
+
+def add_confidential(slide):
+    box = slide.shapes.add_textbox(Inches(4.4), Inches(7.12), Inches(4.5), Inches(0.28))
     p = box.text_frame.paragraphs[0]
-    p.alignment = PP_ALIGN.RIGHT
+    p.alignment = PP_ALIGN.CENTER
     run = p.add_run()
-    run.text = text
-    set_run_font(run, size=10, color=MID_GRAY)
+    run.text = "Confidential"
+    set_run(run, size=11, color=MID_GRAY)
+
+
+def add_sunburst(slide):
+    path = ASSETS / "je_sunburst.png"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(9.55), Inches(-0.4), Inches(4.2), Inches(8.3))
 
 
 def add_title_bar(slide, title, subtitle=None):
+    """Template 2: orange rounded bar + black title."""
     bar = slide.shapes.add_shape(
-        MSO_AUTO_SHAPE_TYPE.RECTANGLE, Inches(0), Inches(0), Inches(10), Inches(1.2)
+        MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(0.45), Inches(0.32), Inches(0.55), Inches(0.18)
     )
     bar.fill.solid()
-    bar.fill.fore_color.rgb = NAVY
-    bar.line.fill.background()
+    bar.fill.fore_color.rgb = ORANGE
+    _no_line(bar)
 
-    title_box = slide.shapes.add_textbox(Inches(0.45), Inches(0.18), Inches(9.1), Inches(0.62))
-    run = title_box.text_frame.paragraphs[0].add_run()
+    box = slide.shapes.add_textbox(Inches(1.15), Inches(0.18), Inches(11.5), Inches(0.5))
+    run = box.text_frame.paragraphs[0].add_run()
     run.text = title
-    set_run_font(run, size=34, bold=True, color=WHITE)
+    set_run(run, size=30, bold=True, color=BLACK)
 
     if subtitle:
-        sub_box = slide.shapes.add_textbox(Inches(0.45), Inches(0.72), Inches(9.1), Inches(0.38))
-        srun = sub_box.text_frame.paragraphs[0].add_run()
+        sub = slide.shapes.add_textbox(Inches(1.15), Inches(0.66), Inches(11.5), Inches(0.32))
+        srun = sub.text_frame.paragraphs[0].add_run()
         srun.text = subtitle
-        set_run_font(srun, size=18, color=RGBColor(0xCB, 0xE5, 0xF0))
+        set_run(srun, size=16, color=GRAY)
 
 
-def add_slide_image(slide, asset_name: str):
-    path = ASSETS / f"{asset_name}.png"
-    if path.exists():
-        slide.shapes.add_picture(str(path), Inches(IMG_LEFT), Inches(IMG_TOP), Inches(IMG_W), Inches(IMG_H))
+def add_chrome(slide, title=None, subtitle=None, sunburst=False, logo_left=False):
+    if sunburst:
+        add_sunburst(slide)
+    if title:
+        add_title_bar(slide, title, subtitle)
+    add_confidential(slide)
+    if logo_left:
+        add_logo(slide, left=0.4, top=6.85, width=2.15)
+    else:
+        add_logo(slide)
 
 
-def add_bullets(slide, items, left=TEXT_LEFT, top=TEXT_TOP, width=TEXT_W, size=24, max_items=4):
-    box = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(5.6))
+def add_orange_bullets(slide, items, left=0.7, top=1.2, width=11.8, size=24):
+    box = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(5.3))
     tf = box.text_frame
     tf.word_wrap = True
-    tf.vertical_anchor = MSO_ANCHOR.TOP
-
-    for i, item in enumerate(items[:max_items]):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        level = item[1] if isinstance(item, tuple) else 0
-        text = item[0] if isinstance(item, tuple) else item
-        p.level = level
-        run = p.add_run()
-        run.text = f"• {text}" if level == 0 else f"  – {text}"
-        set_run_font(run, size=size - (4 if level else 0), color=SLATE)
-        p.space_after = Pt(14)
-        p.space_before = Pt(4)
-
-
-def add_callout(slide, text, top=6.15, width=5.65, size=16):
-    shape = slide.shapes.add_shape(
-        MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,
-        Inches(TEXT_LEFT),
-        Inches(top),
-        Inches(width),
-        Inches(0.72),
-    )
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = RGBColor(0xFE, 0xF3, 0xC7)
-    shape.line.color.rgb = AMBER
-    shape.line.width = Pt(1.5)
-    tf = shape.text_frame
-    tf.word_wrap = True
-    tf.margin_left = Inches(0.12)
-    tf.margin_right = Inches(0.12)
-    run = tf.paragraphs[0].add_run()
-    run.text = text
-    set_run_font(run, size=size, bold=True, color=NAVY)
-
-
-def add_compact_table(slide, headers, rows, col_widths, top=1.35, font_size=13):
-    rows_n = len(rows) + 1
-    cols_n = len(headers)
-    table_shape = slide.shapes.add_table(
-        rows_n, cols_n, Inches(TEXT_LEFT), Inches(top), Inches(5.65), Inches(0.38 * rows_n + 0.2)
-    )
-    table = table_shape.table
-    for i, w in enumerate(col_widths):
-        table.columns[i].width = Inches(w)
-
-    for c, header in enumerate(headers):
-        cell = table.cell(0, c)
-        cell.text = header
-        cell.fill.solid()
-        cell.fill.fore_color.rgb = NAVY
-        for p in cell.text_frame.paragraphs:
-            for run in p.runs:
-                set_run_font(run, size=font_size, bold=True, color=WHITE)
-
-    for r, row in enumerate(rows, start=1):
-        for c, value in enumerate(row):
-            cell = table.cell(r, c)
-            cell.text = value
-            if r % 2 == 0:
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = LIGHT_GRAY
-            for p in cell.text_frame.paragraphs:
-                for run in p.runs:
-                    set_run_font(run, size=font_size - 1, color=SLATE)
-
-
-def slide_title(prs, asset="01_title"):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    bg = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.RECTANGLE, Inches(0), Inches(0), Inches(10), Inches(7.5))
-    bg.fill.solid()
-    bg.fill.fore_color.rgb = NAVY
-    bg.line.fill.background()
-
-    add_slide_image(slide, asset)
-    # Reposition hero image full-width overlay on right
-    for shape in list(slide.shapes):
-        if shape.shape_type == 13:  # picture
-            slide.shapes._spTree.remove(shape._element)
-    slide.shapes.add_picture(str(ASSETS / f"{asset}.png"), Inches(5.2), Inches(0), Inches(4.8), Inches(7.5))
-
-    box = slide.shapes.add_textbox(Inches(0.6), Inches(1.6), Inches(4.6), Inches(4.5))
-    tf = box.text_frame
-    lines = [
-        ("Exxsol D40\nSupply Chain Risk", 38, True, WHITE),
-        ("Quality • Traceability • Anti-Adulteration", 20, False, RGBColor(0xCB, 0xE5, 0xF0)),
-        ("Risk Committee Briefing", 18, False, RGBColor(0xE2, 0xE8, 0xF0)),
-        ("Powder Metallurgy Cleaning", 16, False, RGBColor(0xE2, 0xE8, 0xF0)),
-        ("September 2026", 16, False, RGBColor(0xE2, 0xE8, 0xF0)),
-    ]
-    for i, (text, sz, bold, col) in enumerate(lines):
+    for i, text in enumerate(items):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         run = p.add_run()
         run.text = text
-        set_run_font(run, size=sz, bold=bold, color=col)
-        p.space_after = Pt(10)
+        set_run(run, size=size, color=BLACK)
+        p.space_after = Pt(16)
+        p.space_before = Pt(4)
+        pPr = p._p.get_or_add_pPr()
+        buClr = etree.SubElement(pPr, qn("a:buClr"))
+        srgb = etree.SubElement(buClr, qn("a:srgbClr"))
+        srgb.set("val", "F58220")
+        buFont = etree.SubElement(pPr, qn("a:buFont"))
+        buFont.set("typeface", "Calibri")
+        buSz = etree.SubElement(pPr, qn("a:buSzPts"))
+        buSz.set("val", "2800")
+        buChar = etree.SubElement(pPr, qn("a:buChar"))
+        buChar.set("char", "●")
 
 
-def content_slide(prs, title, bullets, asset, subtitle=None, callout=None, table=None):
+def add_callout(slide, text, left=0.7, top=6.15, width=9.8, fill=ORANGE_SOFT):
+    shape = slide.shapes.add_shape(
+        MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(0.58)
+    )
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = fill
+    shape.line.color.rgb = ORANGE
+    shape.line.width = Pt(1.25)
+    tf = shape.text_frame
+    tf.word_wrap = True
+    tf.margin_left = Inches(0.18)
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    run = p.add_run()
+    run.text = text
+    set_run(run, size=16, bold=True, color=BLACK)
+
+
+def add_table(slide, headers, rows, left=0.7, top=1.25, width=12.0, col_widths=None, font=16):
+    table_shape = slide.shapes.add_table(
+        len(rows) + 1, len(headers), Inches(left), Inches(top), Inches(width), Inches(0.48 * (len(rows) + 1))
+    )
+    table = table_shape.table
+    if col_widths:
+        for i, w in enumerate(col_widths):
+            table.columns[i].width = Inches(w)
+    for c, h in enumerate(headers):
+        cell = table.cell(0, c)
+        cell.text = h
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = ORANGE
+        for p in cell.text_frame.paragraphs:
+            p.alignment = PP_ALIGN.CENTER
+            for run in p.runs:
+                set_run(run, size=font, bold=True, color=WHITE)
+    for r, row in enumerate(rows, start=1):
+        for c, val in enumerate(row):
+            cell = table.cell(r, c)
+            cell.text = val
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = WHITE if r % 2 else LIGHT
+            for p in cell.text_frame.paragraphs:
+                for run in p.runs:
+                    set_run(run, size=font - 1, color=BLACK)
+
+
+def add_circle(slide, left, top, size, label, sub, fill=ORANGE):
+    circ = slide.shapes.add_shape(
+        MSO_AUTO_SHAPE_TYPE.OVAL, Inches(left), Inches(top), Inches(size), Inches(size)
+    )
+    circ.fill.background()
+    circ.line.color.rgb = ORANGE
+    circ.line.width = Pt(3.5)
+
+    tbox = slide.shapes.add_textbox(Inches(left - 0.15), Inches(top + size * 0.28), Inches(size + 0.3), Inches(1.1))
+    tf = tbox.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    run = p.add_run()
+    run.text = label
+    set_run(run, size=18, bold=True, color=BLACK)
+
+    sbox = slide.shapes.add_textbox(Inches(left - 0.2), Inches(top + size + 0.08), Inches(size + 0.4), Inches(0.45))
+    sp = sbox.text_frame.paragraphs[0]
+    sp.alignment = PP_ALIGN.CENTER
+    sr = sp.add_run()
+    sr.text = "●  " + sub
+    set_run(sr, size=15, color=BLACK)
+
+
+# ---------------------------------------------------------------------------
+# Slides
+# ---------------------------------------------------------------------------
+
+def slide_title(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_bar(slide, title, subtitle)
-    add_slide_image(slide, asset)
-    if table:
-        headers, rows, widths = table
-        add_compact_table(slide, headers, rows, widths)
-    else:
-        add_bullets(slide, bullets, size=24)
-    if callout:
-        add_callout(slide, callout)
-    add_footer(slide)
-    return slide
+    add_sunburst(slide)
+
+    box = slide.shapes.add_textbox(Inches(0.7), Inches(1.7), Inches(8.4), Inches(3.4))
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "Exxsol D40\nSupply Chain Risk"
+    set_run(run, size=44, bold=True, color=BLACK)
+
+    p2 = tf.add_paragraph()
+    r2 = p2.add_run()
+    r2.text = "Quality  •  Traceability  •  Anti-Adulteration"
+    set_run(r2, size=22, color=ORANGE)
+    p2.space_before = Pt(18)
+
+    p3 = tf.add_paragraph()
+    r3 = p3.add_run()
+    r3.text = "Risk Committee Briefing  |  Powder Metallurgy Cleaning\nSeptember 2026"
+    set_run(r3, size=18, color=GRAY)
+    p3.space_before = Pt(16)
+
+    add_confidential(slide)
+    add_logo(slide, left=0.55, top=6.85, width=2.15)
 
 
-def slide_executive_summary(prs):
-    content_slide(
-        prs,
-        "Executive Summary",
+def slide_exec(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Executive Summary")
+    add_orange_bullets(
+        slide,
         [
-            "D40 cleans porous PM parts before plating/coating",
-            "Price pressure drives drum adulteration risk",
-            "Fake fluid = fire, HSE & quality failures",
+            "D40 cleans porous PM parts before plating and coating",
+            "Cost pressure raises drum adulteration risk",
+            "Fake fluid = fire, HSE and quality failures",
             "Defense: authorized supply + CoA + GC-MS",
         ],
-        "02_executive",
-        callout="Cheap drums cost more than they save.",
+        top=1.25,
+        width=12.0,
+        size=26,
     )
+    add_callout(slide, "A cheaper drum can cost more than it saves.")
 
 
 def slide_agenda(prs):
-    content_slide(
-        prs,
-        "Agenda",
-        [
-            "Why D40 specs matter",
-            "Boiling range & aromatics",
-            "Supply chain risk",
-            "Controls & actions",
-        ],
-        "03_agenda",
-    )
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Agenda")
+    items = [
+        ("01", "Why D40 specs\nmatter"),
+        ("02", "Boiling range &\naromatics"),
+        ("03", "Supply risk &\nadulteration"),
+        ("04", "Controls &\nactions"),
+    ]
+    x = 0.85
+    for num, label in items:
+        circ = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, Inches(x), Inches(2.0), Inches(2.4), Inches(2.4))
+        circ.fill.background()
+        circ.line.color.rgb = ORANGE
+        circ.line.width = Pt(4)
+        nbox = slide.shapes.add_textbox(Inches(x), Inches(2.55), Inches(2.4), Inches(0.5))
+        np = nbox.text_frame.paragraphs[0]
+        np.alignment = PP_ALIGN.CENTER
+        nr = np.add_run()
+        nr.text = num
+        set_run(nr, size=28, bold=True, color=ORANGE)
+        lbox = slide.shapes.add_textbox(Inches(x - 0.1), Inches(3.1), Inches(2.6), Inches(1.0))
+        lp = lbox.text_frame.paragraphs[0]
+        lp.alignment = PP_ALIGN.CENTER
+        lr = lp.add_run()
+        lr.text = label
+        set_run(lr, size=16, bold=True, color=BLACK)
+        x += 3.05
+
+    add_callout(slide, "Focus: protect solvent integrity from plant to production line.", top=5.85, width=12.0)
 
 
-def slide_business_context(prs):
-    content_slide(
-        prs,
-        "Business Context",
+def slide_context(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Business Context", "Why D40 is on the Risk Agenda")
+    add_orange_bullets(
+        slide,
         [
             "PM pores trap oils — need residue-free clean",
             "D40: fast dry, low odor, metal-safe",
             "Not a commodity — specs are critical",
-            "Look-alike solvents increase fraud risk",
+            "Look-alike solvents raise fraud risk",
         ],
-        "04_business",
-        subtitle="Why D40 Is on the Agenda",
+        size=26,
     )
 
 
-def slide_product_profile(prs):
-    content_slide(
-        prs,
-        "Product Profile",
-        [],
-        "05_product",
-        subtitle="Exxsol D40 Key Specs",
-        table=(
-            ["Spec", "Value", "Why It Matters"],
-            [
-                ["Distillation", "163–187 °C", "Uniform dry"],
-                ["Flash point", "~48 °C", "Flammable"],
-                ["Aromatics", "<0.1%", "Safe, clean"],
-                ["OEL", "1200 mg/m³", "4× vs white spirit"],
-            ],
-            [1.3, 1.5, 2.85],
-        ),
-    )
-
-
-def slide_boiling_range(prs):
-    content_slide(
-        prs,
-        "Boiling Range",
+def slide_product(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Product Profile", "Exxsol D40 key specifications")
+    add_table(
+        slide,
+        ["Spec", "Value", "Why it matters"],
         [
-            "IBP = first drop; DP = last drop",
-            "Narrow range = predictable drying",
-            "Heavy ends stay in PM pores",
-            "MC/methanol breaks the profile",
+            ["Distillation (IBP–DP)", "163–187 °C", "Uniform drying; no heavy-end residue"],
+            ["Flash point", "~48 °C", "Flammable — ignition controls required"],
+            ["Aromatics", "<0.1%", "Low odor, safer, clean surface"],
+            ["OEL", "1,200 mg/m³", "4× safer than white spirit"],
+            ["KB / viscosity", "~31  /  ~1.28 mm²/s", "Controlled solvency; pore penetration"],
         ],
-        "06_boiling",
-        subtitle="IBP • Dry Point • Narrow Window",
-        callout="Adulteration = residue in pores.",
+        col_widths=[3.2, 3.4, 5.4],
+        font=17,
     )
 
 
-def slide_aromatic_content(prs):
-    content_slide(
-        prs,
-        "Low Aromatics",
+def slide_boiling(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Boiling Range", "IBP  •  Dry Point  •  Narrow window")
+    add_orange_bullets(
+        slide,
         [
-            "Less odor & toxicity for workers",
-            "Safe for seals & elastomers",
-            "Clean surface for plating",
-            "Adulteration voids certification",
+            "IBP = first drop; Dry Point = last drop",
+            "Narrow ~24 °C range = predictable drying",
+            "Wide range leaves heavy ends in PM pores",
+            "MC / methanol collapses the profile",
         ],
-        "07_aromatic",
-        subtitle="Dearomatized = Engineered Safety",
+        size=26,
+    )
+    add_callout(slide, "Adulteration = residue in pores and unstable drying.")
+
+
+def slide_aromatic(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Low Aromatics", "Dearomatized = engineered safety")
+    add_orange_bullets(
+        slide,
+        [
+            "Less odor and toxicity for operators",
+            "Safer for seals and elastomers",
+            "Clean surface for plating / coating",
+            "Adulteration voids the certified profile",
+        ],
+        size=26,
     )
 
 
-def slide_d40_vs_d60(prs):
-    content_slide(
-        prs,
-        "D40 vs D60",
-        [],
-        "08_compare",
-        table=(
-            ["", "D40", "D60(S)"],
-            [
-                ["Boil range", "163–187 °C", "180–210 °C"],
-                ["Flash point", "~48 °C", "~68 °C"],
-                ["Dry speed", "Fast", "Slower"],
-                ["Best for", "PM fast clean", "Higher flash needs"],
-            ],
-            [1.2, 2.2, 2.25],
-        ),
+def slide_compare(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "D40 vs D60", "Same family — different process window")
+    add_table(
+        slide,
+        ["", "Exxsol D40", "Exxsol D60 / D60(S)"],
+        [
+            ["Boiling range", "163–187 °C", "180–210 °C"],
+            ["Flash point", "~48 °C", "~68 °C"],
+            ["Dry speed", "Faster", "Slower"],
+            ["Best for", "PM fast clean", "Higher flash-point needs"],
+        ],
+        col_widths=[3.0, 4.5, 4.5],
+        font=18,
     )
+    add_callout(slide, "D60(S) is a supplier designation — not a different formula.", top=5.55)
 
 
 def slide_supply_risk(prs):
-    content_slide(
-        prs,
-        "Supply Chain Risk",
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Supply Chain Risk", "Price pressure raises fraud incentive")
+    add_orange_bullets(
+        slide,
         [
-            "Middle East conflict → feedstock stress",
+            "Middle East conflict stresses feedstock",
             "ExxonMobil +$0.06/lb (Mar 2026)",
-            "China price +5% and rising",
-            "Wide spread = fraud incentive",
+            "China terminal price +5% and rising",
+            "Wide price gap invites adulteration",
         ],
-        "09_supply",
-        callout="Verify — don't buy on price alone.",
+        size=26,
     )
+    add_callout(slide, "Do not buy on price alone. Verify the chain.")
 
 
-def slide_adulteration_threat(prs):
-    content_slide(
-        prs,
-        "Adulteration Threat",
-        [
-            "Traders mix MC & methanol to cut cost",
-            "Reuse real drums & fake CoA",
-            "Looks clear — hard to spot",
-            "Illegal & invalidates SDS",
-        ],
-        "10_adulteration",
-        subtitle="How Fraud Happens",
-    )
-
-
-def slide_impact_table(prs):
-    content_slide(
-        prs,
-        "Impact of Fraud",
-        [],
-        "11_impact",
-        table=(
-            ["Property", "Genuine", "Adulterated"],
-            [
-                ["Distillation", "163–187 °C", "Starts ~40 °C"],
-                ["Flash point", "~48 °C", "Much lower"],
-                ["Cleaning", "Controlled", "Fails"],
-                ["Downstream", "Clean surface", "Coating peel"],
-            ],
-            [1.5, 2.0, 2.15],
-        ),
-    )
-
-
-def slide_operational_risks(prs):
+def slide_adulteration(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_bar(slide, "Enterprise Risk")
-    add_slide_image(slide, "12_enterprise")
-    risks = [
-        ("Safety", "Fire & SDS breach", RED),
-        ("Quality", "Plating & coating fail", AMBER),
-        ("Operations", "Scrap & downtime", AMBER),
-        ("Reputation", "Customer stop-ship", NAVY),
+    add_chrome(slide, "Adulteration Threat", "How unscrupulous traders cut cost")
+    add_orange_bullets(
+        slide,
+        [
+            "Mix cheaper MC and methanol into D40",
+            "Reuse genuine drums and fake CoA / labels",
+            "Looks clear — visual check is not enough",
+            "Illegal — voids SDS and fire-risk assessment",
+        ],
+        size=26,
+    )
+
+
+def slide_impact(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Impact of Fraud")
+    add_table(
+        slide,
+        ["Property", "Genuine D40", "Adulterated"],
+        [
+            ["Distillation", "163–187 °C", "Starts ~40 °C"],
+            ["Flash point", "~48 °C", "Much lower (methanol ~12 °C)"],
+            ["Cleaning", "Controlled, residue-free", "Fails or attacks parts"],
+            ["Downstream", "Clean active surface", "Plating / coating peel"],
+        ],
+        col_widths=[3.0, 4.5, 4.5],
+        font=17,
+    )
+
+
+def slide_enterprise(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Enterprise Risk")
+    items = [
+        ("Safety", "Fire & SDS breach"),
+        ("Quality", "Plating / coating fail"),
+        ("Operations", "Scrap & downtime"),
+        ("Reputation", "Customer stop-ship"),
     ]
-    y = 1.45
-    for title, body, color in risks:
-        shape = slide.shapes.add_shape(
-            MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(0.45), Inches(y), Inches(5.65), Inches(1.05)
+    x = 0.7
+    for title, body in items:
+        card = slide.shapes.add_shape(
+            MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(x), Inches(1.6), Inches(2.85), Inches(3.4)
         )
-        shape.fill.solid()
-        shape.fill.fore_color.rgb = LIGHT_GRAY
-        shape.line.color.rgb = color
-        shape.line.width = Pt(3)
-        tf = shape.text_frame
-        p = tf.paragraphs[0]
-        r1 = p.add_run()
-        r1.text = f"{title}: "
-        set_run_font(r1, size=22, bold=True, color=color)
-        r2 = p.add_run()
-        r2.text = body
-        set_run_font(r2, size=20, color=SLATE)
-        y += 1.2
-    add_footer(slide)
+        card.fill.solid()
+        card.fill.fore_color.rgb = WHITE
+        card.line.color.rgb = ORANGE
+        card.line.width = Pt(2.25)
+        t = slide.shapes.add_textbox(Inches(x + 0.12), Inches(2.2), Inches(2.6), Inches(0.8))
+        tp = t.text_frame.paragraphs[0]
+        tp.alignment = PP_ALIGN.CENTER
+        tr = tp.add_run()
+        tr.text = title
+        set_run(tr, size=22, bold=True, color=ORANGE)
+        b = slide.shapes.add_textbox(Inches(x + 0.15), Inches(3.15), Inches(2.55), Inches(1.3))
+        bp = b.text_frame.paragraphs[0]
+        bp.alignment = PP_ALIGN.CENTER
+        br = bp.add_run()
+        br.text = body
+        set_run(br, size=18, color=BLACK)
+        x += 3.1
+    add_callout(slide, "One adulterated lot can hit safety, quality and customer delivery together.")
 
 
-def slide_distributor_controls(prs):
-    content_slide(
-        prs,
-        "Distributor QC",
-        [
-            "Buy only authorized distributors",
-            "Batch CoA before receipt",
-            "Check IBP, flash, aromatics",
-            "Inspect seals & drum labels",
-        ],
-        "13_qc",
-        subtitle="Three Lines of Defense",
-    )
-
-
-def slide_traceability(prs):
-    content_slide(
-        prs,
-        "Traceability",
-        [
-            "Track lot: maker → line → part",
-            "Barcode drum to CoA in ERP",
-            "Annual distributor audit",
-            "Quarantine suspect lots fast",
-        ],
-        "14_trace",
-        subtitle="Chain of Custody",
-    )
-
-
-def slide_detection(prs):
-    content_slide(
-        prs,
-        "Detection Controls",
-        [],
-        "15_detection",
-        table=(
-            ["Control", "When", "Goal"],
-            [
-                ["CoA review", "Every batch", "Spec match"],
-                ["On-site screen", "Each lot", "Quick flag"],
-                ["GC-MS test", "Quarterly", "Prove purity"],
-                ["Price check", "Ongoing", "Spot fraud"],
-            ],
-            [1.8, 1.5, 2.35],
-        ),
-    )
-
-
-def slide_recommendations(prs):
+def slide_qc(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_bar(slide, "Recommended Actions", "Approval Requested")
-    add_slide_image(slide, "16_actions")
+    add_chrome(slide, "Distributor QC", "Three lines of defense")
+    add_orange_bullets(
+        slide,
+        [
+            "Buy only ExxonMobil-authorized distributors",
+            "Batch CoA before goods receipt",
+            "Check IBP, flash point and aromatics",
+            "Inspect seals, holograms and drum labels",
+        ],
+        size=26,
+    )
+
+
+def slide_trace(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Traceability", "Chain of custody")
+    add_orange_bullets(
+        slide,
+        [
+            "Track lot: plant → ISO tank → drum → line",
+            "Barcode drum to CoA in ERP",
+            "Annual distributor audit + right-to-audit",
+            "Quarantine suspect lots in < 4 hours",
+        ],
+        size=26,
+    )
+
+
+def slide_detect(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Detection Controls")
+    add_table(
+        slide,
+        ["Control", "When", "Goal"],
+        [
+            ["CoA review", "Every batch", "Match ExxonMobil spec"],
+            ["On-site screen", "Each lot", "Density / flash / odor flag"],
+            ["GC-MS test", "Quarterly + anomalies", "Prove purity / ID adulterants"],
+            ["Price check", "Ongoing", "Spot “too cheap” offers"],
+        ],
+        col_widths=[3.5, 4.0, 4.5],
+        font=17,
+    )
+
+
+def slide_actions(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Recommended Actions", "Risk Committee approval requested")
     actions = [
         "Authorized distributors only",
-        "CoA + quarantine all receipts",
+        "CoA + quarantine all D40 receipts",
         "Fund quarterly GC-MS testing",
         "ERP drum-to-line traceability",
-        "Distributor audit in 90 days",
+        "Distributor audit within 90 days",
     ]
-    y = 1.5
+    y = 1.35
     for i, text in enumerate(actions, 1):
-        circle = slide.shapes.add_shape(
-            MSO_AUTO_SHAPE_TYPE.OVAL, Inches(0.5), Inches(y), Inches(0.5), Inches(0.5)
-        )
-        circle.fill.solid()
-        circle.fill.fore_color.rgb = TEAL
-        circle.line.fill.background()
-        cp = circle.text_frame.paragraphs[0]
+        circ = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, Inches(0.75), Inches(y), Inches(0.48), Inches(0.48))
+        circ.fill.solid()
+        circ.fill.fore_color.rgb = ORANGE
+        _no_line(circ)
+        cp = circ.text_frame.paragraphs[0]
         cp.alignment = PP_ALIGN.CENTER
         cr = cp.add_run()
         cr.text = str(i)
-        set_run_font(cr, size=18, bold=True, color=WHITE)
-
-        box = slide.shapes.add_textbox(Inches(1.15), Inches(y + 0.05), Inches(4.9), Inches(0.5))
+        set_run(cr, size=16, bold=True, color=WHITE)
+        box = slide.shapes.add_textbox(Inches(1.45), Inches(y + 0.04), Inches(10.8), Inches(0.48))
         br = box.text_frame.paragraphs[0].add_run()
         br.text = text
-        set_run_font(br, size=22, color=SLATE)
-        y += 0.95
-    add_footer(slide)
+        set_run(br, size=24, color=BLACK)
+        y += 0.88
 
 
-def slide_governance_ask(prs):
-    content_slide(
-        prs,
-        "Governance & KPIs",
+def slide_kpi(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Governance & KPIs")
+    add_orange_bullets(
+        slide,
         [
             "Approve Solvent Integrity Program",
             "100% CoA verified before use",
             "Zero unauthorized suppliers",
             "Quarterly GC-MS minimum",
         ],
-        "17_governance",
-        callout="Prevention costs less than one incident.",
+        size=26,
     )
+    add_callout(slide, "Prevention costs less than one fire, scrap event or stop-ship.")
 
 
-def slide_appendix(prs):
-    content_slide(
-        prs,
-        "Appendix",
-        [
-            "Verify distributors with ExxonMobil",
-            "Shanghai Huishuo — East/North China",
-            "Sang Hing Hong — South China",
-            "Align with PPAP Element 10",
-        ],
-        "18_appendix",
-        subtitle="References",
-    )
-
-
-def slide_thank_you(prs):
+def slide_appendix_divider(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    bg = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.RECTANGLE, Inches(0), Inches(0), Inches(10), Inches(7.5))
-    bg.fill.solid()
-    bg.fill.fore_color.rgb = NAVY
-    bg.line.fill.background()
-    slide.shapes.add_picture(str(ASSETS / "19_qa.png"), Inches(5.0), Inches(0.8), Inches(4.6), Inches(5.8))
+    add_sunburst(slide)
+    box = slide.shapes.add_textbox(Inches(0.8), Inches(2.4), Inches(8.2), Inches(2.2))
+    tf = box.text_frame
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "Appendix"
+    set_run(run, size=48, bold=True, color=BLACK)
+    p2 = tf.add_paragraph()
+    r2 = p2.add_run()
+    r2.text = "Supply chain  •  GC-MS quality control"
+    set_run(r2, size=22, color=ORANGE)
+    add_confidential(slide)
+    add_logo(slide, left=0.55, top=6.85, width=2.15)
 
-    box = slide.shapes.add_textbox(Inches(0.7), Inches(2.5), Inches(4.2), Inches(2.5))
+
+def _picture_slide(prs, title, subtitle, image_name, bullets, img_left=6.55, img_top=1.15, img_w=6.3, img_h=5.4):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, title, subtitle)
+    path = ASSETS / image_name
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(img_left), Inches(img_top), Inches(img_w), Inches(img_h))
+    add_orange_bullets(slide, bullets, left=0.55, top=1.2, width=5.8, size=20)
+    return slide
+
+
+def slide_supply_flow(prs):
+    """Plant → ISO tank → distributor repack + QC."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "D40 Supply Chain", "Plant  →  ISO tank  →  authorized distributor")
+    path = ASSETS / "supply_hydrocarbon.png"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(0.5), Inches(1.1), Inches(12.4), Inches(5.15))
+    add_logo(slide)
+    add_confidential(slide)
+
+
+def slide_supply_trace(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Traceability Controls", "Seals, holograms, QR and CoA at every handoff")
+    path = ASSETS / "supply_traceability.png"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(0.5), Inches(1.1), Inches(12.4), Inches(5.15))
+
+
+def slide_supply_qc_points(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Repackaging — Highest Risk Point")
+    add_orange_bullets(
+        slide,
+        [
+            "Plant fills ISO tanks with sealed, labeled product",
+            "Ocean / air move under GPS and manifest control",
+            "Distributor repack into drums is the fraud window",
+            "Demand: tamper seals, holographic labels, batch CoA",
+        ],
+        size=24,
+        top=1.25,
+        width=12.0,
+    )
+    add_callout(slide, "Never accept a drum that cannot be traced back to the ISO-tank lot.")
+
+
+def slide_gcms_equip(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "GC-MS Equipment", "Gold-standard identity test for D40")
+    path = ASSETS / "gcms_equipment.jpg"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(0.45), Inches(1.15), Inches(8.15), Inches(5.15))
+    add_orange_bullets(
+        slide,
+        [
+            "GC separates the mix",
+            "MS fingerprints each peak",
+            "Finds MC, methanol, others",
+            "Not visible by eye",
+        ],
+        left=8.8,
+        top=1.35,
+        width=4.1,
+        size=18,
+    )
+
+
+def slide_gcms_curve(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "How GC-MS Detects Abnormalities")
+    path = ASSETS / "gcms_curve.png"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(0.45), Inches(1.1), Inches(8.15), Inches(5.2))
+    add_orange_bullets(
+        slide,
+        [
+            "Genuine: even C8–C14 peaks",
+            "Fake: extra / irregular peaks",
+            "Contaminants = fraud signal",
+            "Use as lot fingerprint",
+        ],
+        left=8.8,
+        top=1.35,
+        width=4.1,
+        size=18,
+    )
+
+
+def slide_gcms_why(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "Why GC-MS Matters for QC")
+    add_orange_bullets(
+        slide,
+        [
+            "Proves the drum is Exxsol D40 — not a look-alike",
+            "Identifies MC (~40 °C) and methanol (~65 °C) peaks",
+            "Protects flash-point, residue-free dry and worker safety",
+            "Creates auditable evidence for IATF / PPAP material control",
+        ],
+        size=24,
+    )
+    add_callout(slide, "Recommended: GC-MS every critical lot + quarterly random drums.")
+
+
+def slide_qa(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_sunburst(slide)
+    box = slide.shapes.add_textbox(Inches(0.8), Inches(2.5), Inches(8.2), Inches(2.2))
     tf = box.text_frame
     p = tf.paragraphs[0]
     run = p.add_run()
     run.text = "Questions?"
-    set_run_font(run, size=44, bold=True, color=WHITE)
+    set_run(run, size=48, bold=True, color=BLACK)
     p2 = tf.add_paragraph()
-    run2 = p2.add_run()
-    run2.text = "Risk Committee\nExxsol D40 Integrity"
-    set_run_font(run2, size=22, color=RGBColor(0xCB, 0xE5, 0xF0))
+    r2 = p2.add_run()
+    r2.text = "Risk Committee  •  Exxsol D40 Integrity"
+    set_run(r2, size=22, color=ORANGE)
+    add_confidential(slide)
+    add_logo(slide, left=0.55, top=6.85, width=2.15)
 
 
 def build_presentation():
-    generate_all()
+    generate_brand()
     prs = Presentation()
-    prs.slide_width = Inches(10)
-    prs.slide_height = Inches(7.5)
+    prs.slide_width = Inches(SW)
+    prs.slide_height = Inches(SH)
 
     slide_title(prs)
-    slide_executive_summary(prs)
+    slide_exec(prs)
     slide_agenda(prs)
-    slide_business_context(prs)
-    slide_product_profile(prs)
-    slide_boiling_range(prs)
-    slide_aromatic_content(prs)
-    slide_d40_vs_d60(prs)
+    slide_context(prs)
+    slide_product(prs)
+    slide_boiling(prs)
+    slide_aromatic(prs)
+    slide_compare(prs)
     slide_supply_risk(prs)
-    slide_adulteration_threat(prs)
-    slide_impact_table(prs)
-    slide_operational_risks(prs)
-    slide_distributor_controls(prs)
-    slide_traceability(prs)
-    slide_detection(prs)
-    slide_recommendations(prs)
-    slide_governance_ask(prs)
-    slide_appendix(prs)
-    slide_thank_you(prs)
+    slide_adulteration(prs)
+    slide_impact(prs)
+    slide_enterprise(prs)
+    slide_qc(prs)
+    slide_trace(prs)
+    slide_detect(prs)
+    slide_actions(prs)
+    slide_kpi(prs)
+    slide_appendix_divider(prs)
+    slide_supply_flow(prs)
+    slide_supply_trace(prs)
+    slide_supply_qc_points(prs)
+    slide_gcms_equip(prs)
+    slide_gcms_curve(prs)
+    slide_gcms_why(prs)
+    slide_qa(prs)
 
     prs.save(OUTPUT)
     print(f"Saved: {OUTPUT} ({len(prs.slides)} slides)")

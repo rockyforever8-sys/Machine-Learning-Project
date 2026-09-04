@@ -1,39 +1,52 @@
 # Exxsol D40 Risk Committee Presentation
 
-Professional PowerPoint briefing for C-suite Risk Committee on Exxsol D40 supply chain integrity, distributor quality control, traceability, and adulteration risk.
+Johnson Electric–branded C-suite briefing on Exxsol D40 supply-chain integrity, distributor QC, and adulteration risk.
 
-## Files
+## File
 
-| File | Description |
-|------|-------------|
-| `Exxsol_D40_Supply_Chain_Risk_Committee.pptx` | Ready-to-present deck (19 slides) |
-| `generate_d40_risk_presentation.py` | Regeneration script (requires `python-pptx`) |
+`Exxsol_D40_Supply_Chain_Risk_Committee.pptx` — **25 slides**, 16:9 widescreen
+
+## Brand (from company templates 1–3)
+
+- White background, **orange #F58220** accents, black type
+- Template 1: sunburst motif + logo (title / divider / Q&A)
+- Template 2: orange title bar, orange bullets, logo bottom-right, “Confidential” footer
+- Template 3: orange circle motifs for agenda and risk cards
+- Official Johnson Electric lockup on every slide
+
+## Slide outline
+
+| # | Slide |
+|---|--------|
+| 1 | Title |
+| 2 | Executive Summary |
+| 3 | Agenda |
+| 4 | Business Context |
+| 5 | Product Profile |
+| 6 | Boiling Range |
+| 7 | Low Aromatics |
+| 8 | D40 vs D60 |
+| 9 | Supply Chain Risk |
+| 10 | Adulteration Threat |
+| 11 | Impact of Fraud |
+| 12 | Enterprise Risk |
+| 13 | Distributor QC |
+| 14 | Traceability |
+| 15 | Detection Controls |
+| 16 | Recommended Actions |
+| 17 | Governance & KPIs |
+| 18 | Appendix divider |
+| 19 | **D40 supply chain** — plant → ISO tank → authorized distributor |
+| 20 | **Global traceability** — seals, holograms, QR, CoA |
+| 21 | Repackaging — highest risk point |
+| 22 | **GC-MS equipment** — how the system works |
+| 23 | **How GC-MS detects abnormalities** — genuine vs counterfeit curves |
+| 24 | Why GC-MS matters for QC |
+| 25 | Questions |
 
 ## Regenerate
 
 ```bash
-pip install python-pptx
+pip install python-pptx pillow lxml
 python generate_d40_risk_presentation.py
 ```
-
-## Slide Outline
-
-1. Title
-2. Executive Summary
-3. Agenda
-4. Business Context
-5. Product Profile (D40 specifications)
-6. Boiling Range — IBP, Dry Point, narrow range rationale
-7. Low Aromatic Content — HSE, compatibility, surface quality
-8. D40 vs D60 / D60(S) comparison
-9. Supply Chain Risk Landscape (price pressure)
-10. Adulteration Threat Model (MC, methanol)
-11. Impact on Critical Properties (table)
-12. Enterprise Risk Exposure
-13. Distributor Quality Control Framework
-14. Traceability & Chain of Custody
-15. Detection & Verification Controls
-16. Recommended Actions
-17. Governance Decision & KPIs
-18. Appendix
-19. Questions & Discussion

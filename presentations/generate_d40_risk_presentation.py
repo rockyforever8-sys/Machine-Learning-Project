@@ -632,6 +632,53 @@ def slide_gcms_curve(prs):
     )
 
 
+def slide_gcms_peak_findings(prs):
+    """Appendix slide: major C8–C14 peaks and pass/fail reading of the chromatogram."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_chrome(slide, "GC-MS Peak Findings", "Appendix — major peaks on the hydrocarbon cleaner chromatogram")
+
+    path = ASSETS / "gcms_curve.png"
+    if path.exists():
+        slide.shapes.add_picture(str(path), Inches(7.05), Inches(1.15), Inches(5.85), Inches(3.55))
+
+    add_table(
+        slide,
+        ["Peak", "What it is", "Genuine signal"],
+        [
+            ["C8", "Light hydrocarbon", "Present, even height"],
+            ["C10", "Mid-chain", "Even spacing"],
+            ["C12", "Mid-chain", "Even spacing"],
+            ["C14", "Heavier hydrocarbon", "Completes the fingerprint"],
+        ],
+        left=0.55,
+        top=1.15,
+        width=6.3,
+        col_widths=[1.3, 2.4, 2.6],
+        font=15,
+    )
+
+    add_orange_bullets(
+        slide,
+        [
+            "PASS: even C8–C14 series, clean baseline",
+            "FAIL: extra / irregular peaks = adulterants",
+            "Early extra peaks → MC (~40 °C) or methanol (~65 °C)",
+        ],
+        left=0.55,
+        top=4.55,
+        width=6.3,
+        size=18,
+    )
+    add_callout(
+        slide,
+        "Finding: genuine D40 is an even C8–C14 fingerprint. Unknown peaks are a reject — not visible by eye.",
+        left=0.55,
+        top=6.18,
+        width=12.3,
+    )
+    return slide
+
+
 def slide_gcms_why(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_chrome(slide, "Why GC-MS Matters for QC")
@@ -694,12 +741,27 @@ def build_presentation():
     slide_supply_qc_points(prs)
     slide_gcms_equip(prs)
     slide_gcms_curve(prs)
+    slide_gcms_peak_findings(prs)
     slide_gcms_why(prs)
     slide_qa(prs)
 
     prs.save(OUTPUT)
     print(f"Saved: {OUTPUT} ({len(prs.slides)} slides)")
+    return prs
+
+
+def build_appendix_insert():
+    """Single-slide file to copy into the full pack appendix."""
+    generate_brand()
+    prs = Presentation()
+    prs.slide_width = Inches(SW)
+    prs.slide_height = Inches(SH)
+    slide_gcms_peak_findings(prs)
+    out = Path(__file__).parent / "Appendix_GCMS_Peak_Findings.pptx"
+    prs.save(out)
+    print(f"Saved insert slide: {out}")
 
 
 if __name__ == "__main__":
     build_presentation()
+    build_appendix_insert()
